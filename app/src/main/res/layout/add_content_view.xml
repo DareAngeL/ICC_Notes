@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layouts.RoundedLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:bgColor="@color/toolbarColor"
+    app:topLeftCornerRadius="15dp"
+    app:topRightCornerRadius="15dp"
+    tools:ignore="MissingConstraints"
+    android:id="@+id/scene_main_root"
+    android:padding="10dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageButton
+            android:id="@+id/check_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:padding="8dp"
+            android:scaleType="centerCrop"
+            app:srcCompat="@drawable/ic_check"
+            tools:ignore="ContentDescription,TouchTargetSizeCheck,SpeakableTextPresentCheck" />
+
+        <EditText
+            android:id="@+id/edittxt_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/white"
+            android:hint="@string/write_a_content_here"
+            android:inputType="text"
+            android:text=""
+            android:textColorHint="@color/hintColorWhite"
+            tools:ignore="Autofill,TouchTargetSizeCheck,TextContrastCheck" />
+
+    </LinearLayout>
+
+</layouts.RoundedLayout>

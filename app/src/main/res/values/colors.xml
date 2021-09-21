@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="red">@android:color/holo_red_dark</color>
+    <color name="toolbarColor">#255DCC</color>
+
+    <color name="colorPrimary">#FF007BFF</color>
+    <color name="colorPrimaryDark">#FF003CFF</color>
+    <color name="colorAccent">#FF1D4EEC</color>
+    <color name="colorControlhighlight">#6FB5FF</color>
+
+    <color name="mySubjectStripColor">#FF62AEFF</color>
+    <color name="mainBgColor">#CBE0F6</color>
+    <color name="recyclerBgColor">#FF70B5FF</color>
+    <color name="hintColor">#80003CFF</color>
+    <color name="imgFilter">#4D007BFF</color>
+    <color name="cardForeGroundColor">#331D4EEC</color>
+    <color name="text_color_white">#E3F2FD</color>
+    <color name="delete_bg_clor">#FF3B3B</color>
+    <color name="hintColorWhite">#80FFFFFF</color>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:padding="8dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <layouts.RoundedLayout
+        android:id="@+id/cardview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:bgColor="@color/colorPrimary"
+        app:borderColor="@color/toolbarColor"
+        app:cornerRadius="15dp"
+        tools:ignore="MissingConstraints">
+
+        <ImageButton
+            android:id="@+id/delete_ic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|top"
+            android:layout_margin="8dp"
+            android:background="@android:color/transparent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_delete_white"
+            android:visibility="gone"
+            tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/txtview_content"
+            android:textColor="@color/white"
+            android:layout_margin="10dp"
+            android:textSize="16sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+    </layouts.RoundedLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

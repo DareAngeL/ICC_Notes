@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">ICC Notes</string>
+    <string name="my_subject">My Subjects</string>
+    <string name="day">Day: </string>
+    <string name="dayHint">Today</string>
+    <string name="subject_name">SUBJECT_NAME_HERE</string>
+    <string name="add_subject">Add Subject</string>
+    <string name="write_subject_name">Write Subject Name…</string>
+    <string name="add_day">Add the day for this subject…</string>
+    <string name="add_hour">hour</string>
+    <string name="add_minutes">minutes</string>
+    <string name="btn_add_str">Add</string>
+    <string name="colon">:</string>
+    <string name="card_time">Time</string>
+    <string name="prelim">PRELIM</string>
+    <string name="midterm">MIDTERM</string>
+    <string name="finals">FINALS</string>
+    <string name="percent">0%</string>
+    <string name="title_activity_modules">ModulesActivity</string>
+    <string name="action_settings">Settings</string>
+    <string name="checking_connection">checking your\ninternet connection</string>
+    <string name="modules">Modules</string>
+    <string name="term">Term</string>
+    <string name="subject">Subject Name</string>
+    <string name="module_name">module name</string>
+    <string name="task">Add Content</string>
+    <string name="write_a_content_here">write a content here…</string>
+    <string name="search_content">Search Content</string>
+    <string name="PREF">pref</string>
+    <string name="CHILD">child</string>
+    <string name="VALUE">value</string>
+</resources>

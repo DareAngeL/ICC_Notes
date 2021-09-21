@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layouts.RoundedLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:bgColor="@color/toolbarColor"
+    app:topLeftCornerRadius="15dp"
+    app:topRightCornerRadius="15dp"
+    tools:ignore="MissingConstraints"
+    android:id="@+id/scene_main_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/searchview_root"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:closeIcon="@drawable/ic_close_white"
+            app:commitIcon="@drawable/ic_check"
+            app:searchHintIcon="@drawable/ic_search_white"
+            app:searchIcon="@drawable/ic_search_white" />
+
+        <EditText
+            android:id="@+id/edittxt_content"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/write_a_content_here"
+            android:textColorHint="@color/hintColorWhite"
+            android:visibility="gone"
+            android:importantForAutofill="no"
+            tools:ignore="TextFields" />
+
+    </LinearLayout>
+
+</layouts.RoundedLayout>

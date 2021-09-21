@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="RoundedLayout">
+        <attr name="topLeftCornerRadius" format="dimension"/>
+        <attr name="topRightCornerRadius" format="dimension"/>
+        <attr name="bottomLeftCornerRadius" format="dimension"/>
+        <attr name="bottomRightCornerRadius" format="dimension"/>
+        <attr name="shadowRadius" format="dimension"/>
+        <attr name="cornerRadius" format="dimension"/>
+        <attr name="borderColor" format="reference|color"/>
+        <attr name="bgColor" format="reference|color"/>
+    </declare-styleable>
+</resources>

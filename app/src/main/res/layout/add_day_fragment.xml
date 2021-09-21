@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:background="#D1D1D1"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="5dp"
+    app:cardPreventCornerOverlap="true"
+    app:contentPadding="8dp"
+    tools:ignore="MissingConstraints">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <EditText
+                android:id="@+id/day"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:autofillHints="Monday"
+                android:paddingStart="30dp"
+                android:paddingEnd="30dp"
+                android:textColor="@color/toolbarColor"
+                android:backgroundTint="@color/colorAccent"
+                android:hint="@string/add_day"
+                android:inputType="text"
+                android:minHeight="48dp"
+                android:textColorHint="@color/hintColor"
+                android:textSize="16sp"
+                tools:ignore="SpeakableTextPresentCheck,TextContrastCheck" />
+
+            <Spinner
+                android:id="@+id/spinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center_vertical"
+                android:dropDownWidth="wrap_content"
+                android:entries="@array/days"
+                android:spinnerMode="dropdown"
+                tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <EditText
+                    android:id="@+id/hour"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:autofillHints="Monday"
+                    android:backgroundTint="@color/colorAccent"
+                    android:hint="@string/add_hour"
+                    android:inputType="number"
+                    android:minHeight="48dp"
+                    android:textColor="@color/toolbarColor"
+                    android:textColorHint="@color/hintColor"
+                    android:textSize="16sp"
+                    tools:ignore="SpeakableTextPresentCheck,TextContrastCheck,TouchTargetSizeCheck" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/colon"/>
+
+                <EditText
+                    android:id="@+id/minutes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:ems="4"
+                    android:autofillHints="Monday"
+                    android:backgroundTint="@color/colorAccent"
+                    android:hint="@string/add_minutes"
+                    android:inputType="number"
+                    android:minHeight="48dp"
+                    android:textColor="@color/toolbarColor"
+                    android:textColorHint="@color/hintColor"
+                    android:textSize="16sp"
+                    tools:ignore="SpeakableTextPresentCheck,TextContrastCheck" />
+
+
+            </LinearLayout>
+
+            <Spinner
+                android:id="@+id/meridiem_spinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center_vertical"
+                android:dropDownWidth="wrap_content"
+                android:entries="@array/meridiem"
+                android:spinnerMode="dropdown"
+                tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
+
+        </FrameLayout>
+
+        <Button
+            android:id="@+id/add_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="@string/btn_add_str"
+            android:textSize="12sp"
+            tools:ignore="TextContrastCheck" />
+
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
