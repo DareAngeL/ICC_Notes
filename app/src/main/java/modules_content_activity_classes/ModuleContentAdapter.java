@@ -55,30 +55,43 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         txt.setText(data.get((data.size()-1)-position));
 
         // card on click
-        card.setOnClickListener(view -> mListener.onClick());
+        card.setOnClickListener(view -> {
+            if (onDeleteMode) {
+                onDeleteMode = false;
+                _initNormalView(card, deleteBtn);
+            }
+            mListener.onClick();
+        });
 
         // card on long click
         card.setOnLongClickListener(view -> {
             if (!onDeleteMode) {
                 onDeleteMode = true;
-                card.setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.delete_bg_clor, null));
-                deleteBtn.setVisibility(View.VISIBLE);
+                _initDeleteView(card, deleteBtn);
                 return true;
             }
             onDeleteMode = false;
-            card.setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
-            deleteBtn.setVisibility(View.GONE);
+            _initNormalView(card, deleteBtn);
             return true;
         });
         // delete btn on click
         deleteBtn.setOnClickListener(view -> {
             if (onDeleteMode) {
                 onDeleteMode = false;
-                card.setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
-                deleteBtn.setVisibility(View.GONE);
+                _initNormalView(card, deleteBtn);
             }
             mListener.onDeleteButtonClick((data.size()-1)-position);
         });
+    }
+
+    private void _initNormalView(View card, @NonNull View deleteBtn) {
+        ((RoundedLayout)card).setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
+        deleteBtn.setVisibility(View.GONE);
+    }
+
+    private void _initDeleteView(View card, @NonNull View deleteBtn) {
+        ((RoundedLayout)card).setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.delete_bg_clor, null));
+        deleteBtn.setVisibility(View.VISIBLE);
     }
 
     @Override
