@@ -111,6 +111,15 @@ public class App {
         errorAnimator.start();
     }
 
+    @NonNull
+    public static String cutString(final CharSequence charSeq, final int start, final int end) {
+        final StringBuilder strBuilder = new StringBuilder();
+        for (int i=start; i<end; i++)
+            strBuilder.append(charSeq.charAt(i));
+
+        return strBuilder.toString();
+    }
+
     public static float convertDptoPx(float dp) {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().getDisplayMetrics());
     }
