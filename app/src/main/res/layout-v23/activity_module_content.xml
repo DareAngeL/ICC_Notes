@@ -4,18 +4,27 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#D3E8FF"
     tools:context=".ModuleContentActivity">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.4"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        app:srcCompat="@mipmap/ic_logo" />
 
     <LinearLayout
         android:id="@+id/root"
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/module_content_recyclerview"
-            android:layout_width="409dp"
-            android:layout_height="729dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             tools:ignore="MissingConstraints"
             tools:layout_editor_absoluteX="1dp"
             tools:layout_editor_absoluteY="1dp" />
@@ -23,36 +32,38 @@
     </LinearLayout>
 
     <LinearLayout
-        android:layout_gravity="bottom"
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@android:color/transparent"
+        android:orientation="vertical">
 
         <layouts.RoundedLayout
-            android:layout_gravity="center"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             app:bgColor="@color/toolbarColor"
             app:topLeftCornerRadius="15dp"
             app:topRightCornerRadius="15dp">
 
             <TextView
                 android:id="@+id/add_search_content_task"
-                android:foreground="?attr/selectableItemBackground"
-                android:text="@string/task"
-                android:textColor="@color/white"
-                android:padding="8dp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:foreground="?attr/selectableItemBackground"
+                android:padding="8dp"
+                android:text="@string/task"
+                android:textColor="@color/white" />
 
         </layouts.RoundedLayout>
 
         <FrameLayout
             android:id="@+id/scene_root"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent">
 
-            <include layout="@layout/search_content_view"/>
+            <include layout="@layout/search_content_view" />
 
         </FrameLayout>
 
