@@ -34,6 +34,9 @@
             android:hint="@string/write_a_content_here"
             android:inputType="text"
             android:text=""
+            android:textColor="@color/white"
+            android:textColorHighlight="#BFFFE603"
+            android:textCursorDrawable="@null"
             android:textColorHint="@color/hintColorWhite"
             tools:ignore="Autofill,TouchTargetSizeCheck,TextContrastCheck" />
 
