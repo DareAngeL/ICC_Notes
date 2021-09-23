@@ -2,6 +2,12 @@ package modules_content_activity_classes;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Color;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.style.BackgroundColorSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,11 +20,18 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.tajos.iccnotes.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import layouts.RoundedLayout;
 
 public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdapter.ViewHolder> {
+    private static final String TAG = "ModuleContentAdapter";
+    private static boolean isOnSearchMode = false;
+
+    private final int HIGHLIGHT_COLOR = Color.parseColor("#79FFE603");
+
+    private List<int[]> indexes = new ArrayList<>();
     private final List<String> data;
     private final Context context;
 
@@ -33,8 +46,16 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
     }
 
     public ModuleContentAdapter(final Context cn, final List<String> data) {
+        isOnSearchMode = false;
         context = cn;
         this.data = data;
+    }
+
+    public ModuleContentAdapter(final Context cn, final List<String> data, final List<int[]> indexes) {
+        isOnSearchMode = true;
+        context = cn;
+        this.data = data;
+        this.indexes = indexes;
     }
 
     @NonNull
@@ -52,8 +73,25 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         final RoundedLayout card = _view.findViewById(R.id.cardview);
         final ImageButton deleteBtn = _view.findViewById(R.id.delete_ic);
         final TextView txt = _view.findViewById(R.id.txtview_content);
-        txt.setText(data.get((data.size()-1)-position));
 
+        if (isOnSearchMode) {
+            final int[] indexs = indexes.get(position);
+            Log.i(TAG, "onBindViewHolder: " + indexs[0] + ", " + indexs[1]);
+            final String textFound = data.get(position).substring(indexs[0], indexs[1]);
+
+            SpannableString spanText = new SpannableString(textFound);
+            spanText.setSpan(new BackgroundColorSpan(HIGHLIGHT_COLOR), 0, textFound.length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+
+            SpannableStringBuilder spanBuilder = new SpannableStringBuilder();
+            spanBuilder.append(data.get(position).substring(0, indexs[0])); // append the non-highlighted first part of the content
+            spanBuilder.append(spanText); // append the highlighted part of the content.
+            spanBuilder.append(data.get(position).substring(indexs[1])); // append the non-highlighted second part of the content.
+
+            txt.setText(spanBuilder);
+            return; // we will return cuz we dont want to initialize the listeners if we are on search mode.
+        }
+
+        txt.setText(data.get(position));
         // card on click
         card.setOnClickListener(view -> {
             if (onDeleteMode) {
@@ -80,7 +118,7 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
                 onDeleteMode = false;
                 _initNormalView(card, deleteBtn);
             }
-            mListener.onDeleteButtonClick((data.size()-1)-position);
+            mListener.onDeleteButtonClick(position);
         });
     }
 

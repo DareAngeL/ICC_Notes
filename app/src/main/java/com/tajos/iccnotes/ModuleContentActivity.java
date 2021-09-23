@@ -1,5 +1,6 @@
 package com.tajos.iccnotes;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.content.res.ResourcesCompat;
@@ -10,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.annotation.SuppressLint;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.os.Message;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -35,8 +37,11 @@ import iccnote.InternetConnection;
 import iccnote.Module;
 import iccnote.SavedData;
 import modules_content_activity_classes.ModuleContentAdapter;
+import modules_content_activity_classes.SearchContentThread;
 
 public class ModuleContentActivity extends AppCompatActivity {
+
+    private static final String TAG = "ModuleContentActivity";
 
     private RecyclerView recyclerView;
     private FrameLayout scenesRoot;
@@ -49,6 +54,10 @@ public class ModuleContentActivity extends AppCompatActivity {
     private ModuleContentAdapter adapter;
     private ModuleContentAdapter.OnCardClickedListener cardListener;
 
+    private String jsonContents;
+
+    private SearchContentThread searchingThread = new SearchContentThread(this);
+
     private FirebaseDB database;
 
     @Override
@@ -57,6 +66,12 @@ public class ModuleContentActivity extends AppCompatActivity {
         setContentView(R.layout.activity_module_content);
         _initBundles();
         _initLogic();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        searchingThread.quit();
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -92,13 +107,28 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     private boolean isKeyboardShown;
     private boolean isFirstInit = true;
+    @SuppressLint("NotifyDataSetChanged")
     private void _initBundles() {
         root = findViewById(R.id.root);
         recyclerView = findViewById(R.id.module_content_recyclerview);
         TextView addSearchContentTask = findViewById(R.id.add_search_content_task);
         scenesRoot = findViewById(R.id.scene_root);
 
-        // soft keyboard listener
+        /* * * * * * * * * * *
+        * searching listener
+        * * * * * * * * * * */
+        //when search is completed we need to set new adapter and notify the recyclerview of the changes.
+        searchingThread.setOnSearchListener((highlightsIndexes, availableContent) -> {
+            // on search completed
+            adapter = new ModuleContentAdapter(this, availableContent, highlightsIndexes);
+            recyclerView.setAdapter(adapter);
+            Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
+        });
+        searchingThread.start();
+
+        /* * * * * * * * * * * * *
+        * soft keyboard listener
+        * * * * * * * * * * * * */
         root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
             int heightDiff = root.getRootView().getHeight() - root.getHeight();
             Log.i("HEIGHT_DIFF", String.valueOf(heightDiff));
@@ -109,6 +139,9 @@ public class ModuleContentActivity extends AppCompatActivity {
             isKeyboardShown = false;
         });
 
+        /* * * * * * * * * * * * *
+         * card listener
+         * * * * * * * * * * * * */
         cardListener = new ModuleContentAdapter.OnCardClickedListener() {
             @Override
             public void onClick() {
@@ -123,6 +156,9 @@ public class ModuleContentActivity extends AppCompatActivity {
             }
         };
 
+        /* * * * * * * * * * * * *
+         * add/searchContent listener
+         * * * * * * * * * * * * */
         addSearchContentTask.setOnClickListener(new View.OnClickListener() {
             boolean isOnSearchContentView = true;
             @Override
@@ -145,7 +181,10 @@ public class ModuleContentActivity extends AppCompatActivity {
     * This will initialize the content for Add content view;
     */
     private boolean isEditTextContentOnError = false; // boolean for edittext content if its on error or not.
+    @SuppressLint("NotifyDataSetChanged")
     private void _initAddContentView() {
+        _resetAdapter(); // always reset the adapter.
+
         scenesRoot.removeAllViews();
         View view = LayoutInflater.from(ModuleContentActivity.this).inflate(R.layout.add_content_view, scenesRoot);
         final ImageButton checkBtn = view.findViewById(R.id.check_btn);
@@ -173,8 +212,12 @@ public class ModuleContentActivity extends AppCompatActivity {
 
         checkBtn.setOnClickListener(view1 -> {
             if (!editTextContent.getText().toString().isEmpty()) {
+                if (isKeyboardShown)
+                    App.hideKeyboard(this, view1);
+
                 contents.add(editTextContent.getText().toString());
                 adapter.notifyItemInserted(0);
+                editTextContent.setText("");
                 _updateData();
                 return;
             }
@@ -182,7 +225,6 @@ public class ModuleContentActivity extends AppCompatActivity {
             App.animateErrorEffect(ModuleContentActivity.this, editTextContent);
         });
     }
-
     /*
     * This will initialize the content for search content view;
     */
@@ -197,14 +239,41 @@ public class ModuleContentActivity extends AppCompatActivity {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
+                _searchContent(query);
                 return true;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
+                _searchContent(newText);
                 return true;
             }
         });
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private void _searchContent(@NonNull final String text) {
+        if (text.isEmpty()) {
+            _resetAdapter();
+            return;
+        }
+
+        jsonContents = new Gson().toJson(contents);
+        final Message msgToHandler = Message.obtain();
+        {
+            HashMap<String, String> msgMap = new HashMap<>();
+            msgMap.put("search_key", text);
+            msgMap.put("contents", jsonContents);
+            msgToHandler.obj = new Gson().toJson(msgMap);
+        }
+        searchingThread.getHandler().sendMessage(msgToHandler);
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private void _resetAdapter() {
+        adapter = new ModuleContentAdapter(this, contents);
+        recyclerView.setAdapter(adapter);
+        Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
     }
 
     /*
@@ -231,7 +300,7 @@ public class ModuleContentActivity extends AppCompatActivity {
                     }
                     return;
                 }
-                // if the program will pass here means the the content is empty, the code block below is a must
+                // if the program will pass here means the content is empty, the code block below is a must
                 // bcuz the database will automatically delete the key when empty
                 // so we need to add a new key with a string null value as placeholder.
                 HashMap<String, Object> moduleMap = new HashMap<>();
