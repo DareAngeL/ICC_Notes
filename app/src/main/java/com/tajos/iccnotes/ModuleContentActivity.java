@@ -79,7 +79,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         _initContents();
         _initSearchContentView();
 
-        adapter = new ModuleContentAdapter(this, contents);
+        adapter = new ModuleContentAdapter(this, contents, null);
         adapter.setOnCardClickListener(cardListener);
         recyclerView.setItemViewCacheSize(4);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
@@ -115,12 +115,12 @@ public class ModuleContentActivity extends AppCompatActivity {
         scenesRoot = findViewById(R.id.scene_root);
 
         /* * * * * * * * * * *
-        * searching listener
-        * * * * * * * * * * */
+         * searching listener
+         * * * * * * * * * * */
         //when search is completed we need to set new adapter and notify the recyclerview of the changes.
-        searchingThread.setOnSearchListener((highlightsIndexes, availableContent) -> {
+        searchingThread.setOnSearchListener((availableContent) -> {
             // on search completed
-            adapter = new ModuleContentAdapter(this, availableContent, highlightsIndexes);
+            adapter = new ModuleContentAdapter(this, null, availableContent);
             recyclerView.setAdapter(adapter);
             Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
         });
@@ -216,7 +216,7 @@ public class ModuleContentActivity extends AppCompatActivity {
                     App.hideKeyboard(this, view1);
 
                 contents.add(editTextContent.getText().toString());
-                adapter.notifyItemInserted(0);
+                adapter.notifyItemInserted(contents.size() - 1);
                 editTextContent.setText("");
                 _updateData();
                 return;
@@ -271,7 +271,7 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     @SuppressLint("NotifyDataSetChanged")
     private void _resetAdapter() {
-        adapter = new ModuleContentAdapter(this, contents);
+        adapter = new ModuleContentAdapter(this, contents, null);
         recyclerView.setAdapter(adapter);
         Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
     }
