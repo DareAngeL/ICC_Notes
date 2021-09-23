@@ -56,7 +56,6 @@ public class SearchContentThread extends HandlerThread {
 
                 assert contents != null;
                 List<SpannableStringBuilder> avContent = new ArrayList<>();
-                List<int[]> highlightIndexes = new ArrayList<>();
                 for (String content : contents) {
                     assert textToSearch != null;
                     final String contentLCase = content.toLowerCase(Locale.ROOT);

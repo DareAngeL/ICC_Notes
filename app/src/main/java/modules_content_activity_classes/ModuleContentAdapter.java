@@ -2,7 +2,6 @@ package modules_content_activity_classes;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Color;
 import android.text.SpannableStringBuilder;
 import android.view.LayoutInflater;
 import android.view.View;
