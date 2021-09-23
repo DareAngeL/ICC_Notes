@@ -1,6 +1,7 @@
 # ICC_Notes
-This is a notes application for me to use it on my current college school. To save all the modules, organize, sort and access it easily
 __*UNDER-DEVELOPMENT*__
+
+This is a notes application for me to use it on my current college school. To save all the modules, organize, sort and access it easily
 
 # Features
 1. All subjects will be sorted according to it's set day. For example, if the current day is Monday- all subjects that is for the current day will be brought on top of the list for easy accessibility without having to scroll down or search just to find the subject for the current day.
