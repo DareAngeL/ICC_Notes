@@ -24,8 +24,6 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
     private static final String TAG = "ModuleContentAdapter";
     private static boolean isOnSearchMode = false;
 
-    private final int HIGHLIGHT_COLOR = Color.parseColor("#79FFE603");
-
     private List<String> data;
     private List<SpannableStringBuilder> spannedContents;
     private final Context context;
