@@ -31,12 +31,12 @@
 
         <TextView
             android:id="@+id/txtview_content"
-            android:textColor="@color/white"
-            android:layout_margin="10dp"
-            android:textSize="16sp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="" />
+            android:layout_margin="10dp"
+            android:text=""
+            android:textColor="@color/white"
+            android:textSize="18sp" />
 
     </layouts.RoundedLayout>
 
