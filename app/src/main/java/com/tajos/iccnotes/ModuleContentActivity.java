@@ -2,6 +2,7 @@ package com.tajos.iccnotes;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.ViewCompat;
@@ -10,10 +11,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.annotation.SuppressLint;
 import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Message;
 import android.text.Editable;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +30,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -30,33 +39,42 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import iccnote.App;
 import iccnote.FirebaseDB;
 import iccnote.InternetConnection;
 import iccnote.Module;
 import iccnote.SavedData;
+import iccnote.Subject;
 import modules_content_activity_classes.ModuleContentAdapter;
+import modules_content_activity_classes.PaintWindow;
 import modules_content_activity_classes.SearchContentThread;
 
 public class ModuleContentActivity extends AppCompatActivity {
 
     private static final String TAG = "ModuleContentActivity";
 
+    private static final String BOLD = "BOLD";
+    private static final String ITALIC = "ITALIC";
+    private static final String UNDERLINE = "UNDERLINE";
+    private static final String FOREGROUND = "FOREGROUND";
+    private static final String BACKGROUND = "BACKGROUND";
+
     private RecyclerView recyclerView;
     private FrameLayout scenesRoot;
     private LinearLayout root;
 
     private final HashMap<String, Object> intentDataMap = new HashMap<>();
-    private final List<Module> meetings = new ArrayList<>();
+    private final static List<Module> meetings = new ArrayList<>();
     private List<Module> modules = new ArrayList<>();
-    private List<String> contents = new ArrayList<>();
+    private List<HashMap<String, Object>> contents = new ArrayList<>();
+    private List<SpannableStringBuilder> spannables;
+
     private ModuleContentAdapter adapter;
     private ModuleContentAdapter.OnCardClickedListener cardListener;
 
-    private String jsonContents;
-
-    private SearchContentThread searchingThread = new SearchContentThread(this);
+    private final SearchContentThread searchingThread = new SearchContentThread(this);
 
     private FirebaseDB database;
 
@@ -79,7 +97,8 @@ public class ModuleContentActivity extends AppCompatActivity {
         _initContents();
         _initSearchContentView();
 
-        adapter = new ModuleContentAdapter(this, contents, null);
+        spannables = _initSpannables();
+        adapter = new ModuleContentAdapter(this, spannables, null);
         adapter.setOnCardClickListener(cardListener);
         recyclerView.setItemViewCacheSize(4);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
@@ -102,7 +121,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         if (jsonContentFromIntent.equals("null"))
             return;
 
-        contents = new Gson().fromJson(jsonContentFromIntent, new TypeToken<ArrayList<String>>(){}.getType());
+        contents = new Gson().fromJson(jsonContentFromIntent, new TypeToken<List<HashMap<String, Object>>>(){}.getType());
     }
 
     private boolean isKeyboardShown;
@@ -121,6 +140,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         searchingThread.setOnSearchListener((availableContent) -> {
             // on search completed
             adapter = new ModuleContentAdapter(this, null, availableContent);
+            adapter.setOnCardClickListener(cardListener);
             recyclerView.setAdapter(adapter);
             Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
         });
@@ -151,7 +171,11 @@ public class ModuleContentActivity extends AppCompatActivity {
             @Override
             public void onDeleteButtonClick(int position) {
                 contents.remove(position);
-                adapter.notifyDataSetChanged();
+                spannables = _initSpannables();
+                adapter = new ModuleContentAdapter(ModuleContentActivity.this, spannables, null);
+                adapter.setOnCardClickListener(cardListener);
+                recyclerView.setAdapter(adapter);
+                Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
                 _updateData();
             }
         };
@@ -163,6 +187,11 @@ public class ModuleContentActivity extends AppCompatActivity {
             boolean isOnSearchContentView = true;
             @Override
             public void onClick(View view) {
+                if (intentDataMap.get("module_key").toString().equals(Module.ALL)) {
+                    Toast.makeText(ModuleContentActivity.this, "You can't add content, you are in ALL MODULES page!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 if (isOnSearchContentView) {
                     isOnSearchContentView = false;
                     ((TextView)view).setText(R.string.search_content);
@@ -181,25 +210,32 @@ public class ModuleContentActivity extends AppCompatActivity {
     * This will initialize the content for Add content view;
     */
     private boolean isEditTextContentOnError = false; // boolean for edittext content if its on error or not.
-    @SuppressLint("NotifyDataSetChanged")
+    private final AtomicReference<List<HashMap<String, Object>>> spannedIndices = new AtomicReference<>();
+    @SuppressLint({"NotifyDataSetChanged", "InflateParams"})
     private void _initAddContentView() {
         _resetAdapter(); // always reset the adapter.
-
         scenesRoot.removeAllViews();
-        View view = LayoutInflater.from(ModuleContentActivity.this).inflate(R.layout.add_content_view, scenesRoot);
+
+        final SpannableStringBuilder spannedContent = new SpannableStringBuilder();
+
+        View view = LayoutInflater.from(this).inflate(R.layout.add_content_view, scenesRoot);
         final ImageButton checkBtn = view.findViewById(R.id.check_btn);
         final EditText editTextContent = view.findViewById(R.id.edittxt_content);
+        final ImageButton boldBtn = view.findViewById(R.id.bold);
+        final ImageButton italicBtn = view.findViewById(R.id.italic);
+        final ImageButton underlineBtn = view.findViewById(R.id.underline);
+        final ImageButton paintBtn = view.findViewById(R.id.paint);
 
         editTextContent.requestFocus();
         // if the soft keyboard is not shown, show it. Otherwise, don't.
         if(!isKeyboardShown)
             App.showKeyboard(this);
-
+        // edittext content click listener
         editTextContent.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
             @Override
-            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
                 if (isEditTextContentOnError) {
                     isEditTextContentOnError = false;
                     final int color = ResourcesCompat.getColor(getResources(), R.color.white, null);
@@ -209,14 +245,50 @@ public class ModuleContentActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable editable) {}
         });
+        // bold btn listener
+        boldBtn.setOnClickListener(view13 -> _setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.BOLD), -1, BOLD));
+        // italic btn listener
+        italicBtn.setOnClickListener(view14 -> _setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.ITALIC), -1, ITALIC));
+        // underline btn listener
+        underlineBtn.setOnClickListener(view15 -> _setSpan(editTextContent, spannedContent, new UnderlineSpan(), -1, UNDERLINE));
 
+        // paint button click listener
+        paintBtn.setOnClickListener(view12 -> {
+            paintBtn.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_paint_blue));
+            // show the paint window and set its listener
+            new PaintWindow().show(this, paintBtn, (data) -> {
+                // on finish selecting color
+                paintBtn.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_paint_black));
+                // text color type highlight
+                if (data.containsKey(PaintWindow.TYPE) && data.containsKey(PaintWindow.COLOR)) {
+                    if (Objects.requireNonNull(data.get(PaintWindow.TYPE)) == PaintWindow.TEXT_COLOR_TYPE) {
+                        _setSpan(editTextContent, spannedContent, new ForegroundColorSpan(Objects.requireNonNull(data.get(PaintWindow.COLOR))), Objects.requireNonNull(data.get(PaintWindow.COLOR)), FOREGROUND);
+                        return;
+                    }
+                    //background type highlight
+                    _setSpan(editTextContent, spannedContent, new BackgroundColorSpan(Objects.requireNonNull(data.get(PaintWindow.COLOR))), Objects.requireNonNull(data.get(PaintWindow.COLOR)), BACKGROUND);
+                }
+            });
+        });
+
+        // checkBtn listener
         checkBtn.setOnClickListener(view1 -> {
             if (!editTextContent.getText().toString().isEmpty()) {
                 if (isKeyboardShown)
                     App.hideKeyboard(this, view1);
 
-                contents.add(editTextContent.getText().toString());
-                adapter.notifyItemInserted(contents.size() - 1);
+                final HashMap<String, Object> mapContents = new HashMap<>();
+                final String indicesJson = new Gson().toJson(spannedIndices.get());
+
+                mapContents.put("text", editTextContent.getText().toString());
+                mapContents.put("indices", indicesJson);
+                contents.add(mapContents);
+
+                spannables = _initSpannables();
+                adapter = new ModuleContentAdapter(this, spannables, null);
+                adapter.setOnCardClickListener(cardListener);
+                recyclerView.setAdapter(adapter);
+                Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
                 editTextContent.setText("");
                 _updateData();
                 return;
@@ -251,6 +323,266 @@ public class ModuleContentActivity extends AppCompatActivity {
         });
     }
 
+    /*
+    * this will initialize the spannables for each contents before passing it to @ModuleContentAdapter.
+    * so we can display the spanned contents on recyclerview.
+    * @used in initLogic method => this will be called every time this@ModuleContentActivity activity will be opened.
+    * @used in checkBtn View listener inside _initAddContentView method.
+    */
+    @NonNull
+    private List<SpannableStringBuilder> _initSpannables() {
+        List<SpannableStringBuilder> spannedContents = new ArrayList<>();
+
+        for (HashMap<String, Object> spanMap : contents) {
+            final String text = Objects.requireNonNull(spanMap.get("text")).toString();
+            final List<HashMap<String, Object>> spannedIndicesList = new Gson().fromJson(Objects.requireNonNull(spanMap.get("indices")).toString(), new TypeToken<List<HashMap<String, Object>>>() {}.getType());
+            spannedIndices.set(spannedIndicesList);
+
+            SpannableStringBuilder spannedContent = new SpannableStringBuilder();
+            spannedContent.append(text);
+
+            // checks if there is an indices of spanned text and if there is, span it. Otherwise, it is plain text, dont span.
+            if (spannedIndicesList != null && spannedIndicesList.size() > 0)
+                _resetSpan(spannedContent);
+
+            spannedContents.add(spannedContent);
+        }
+
+        return spannedContents;
+    }
+    /*
+     * this will get the spanned indices from editTextContent of AddContentView and store it to spannedIndices variable
+     * @everytime the BOLD, ITALIC and UNDERLINE button is clicked, this will be called so we can update the indices list
+     */
+    @NonNull
+    private List<HashMap<String, Object>> _getSpannedIndices(@NonNull final SpannableStringBuilder span) {
+        final List<HashMap<String, Object>> spannedIndices = new ArrayList<>();
+        final StyleSpan[] styleSpans = span.getSpans(0, span.length(), StyleSpan.class);
+        final UnderlineSpan[] underlineSpans = span.getSpans(0, span.length(), UnderlineSpan.class);
+        final ForegroundColorSpan[] foregroundColorSpans = span.getSpans(0, span.length(), ForegroundColorSpan.class);
+        final BackgroundColorSpan[] backgroundColorSpans = span.getSpans(0, span.length(), BackgroundColorSpan.class);
+
+        for (StyleSpan styleSpan : styleSpans) {
+            if (styleSpan.getStyle() == Typeface.BOLD) {
+                final HashMap<String, Object> map = new HashMap<>();
+                final int[] indices = { span.getSpanStart(styleSpan), span.getSpanEnd(styleSpan) };
+                if (indices[0] == 0 && indices[1] == 0)
+                    continue;
+
+                final String text = App.cutString(span.toString(), indices[0], indices[1]);
+                final String indicesJson = new Gson().toJson(indices);
+                map.put("type_span", "BOLD");
+                map.put("text", text);
+                map.put("bold_i", indicesJson);
+                spannedIndices.add(map);
+                continue;
+            }
+            // ITALIC span style
+            final HashMap<String, Object> map = new HashMap<>();
+            int[] indices = { span.getSpanStart(styleSpan), span.getSpanEnd(styleSpan) };
+            if (indices[0] == 0 && indices[1] == 0)
+                continue;
+
+            final String text = App.cutString(span.toString(), indices[0], indices[1]);
+            final String indicesJson = new Gson().toJson(indices);
+            map.put("type_span", "ITALIC");
+            map.put("text", text);
+            map.put("italic_i", indicesJson);
+            spannedIndices.add(map);
+        }
+        // UNDERLINE span style
+        for (UnderlineSpan underlineSpan : underlineSpans) {
+            final HashMap<String, Object> map = new HashMap<>();
+            int[] indices = { span.getSpanStart(underlineSpan), span.getSpanEnd(underlineSpan) };
+            if (indices[0] == 0 && indices[1] == 0)
+                continue;
+
+            final String text = App.cutString(span.toString(), indices[0], indices[1]);
+            final String indicesJson = new Gson().toJson(indices);
+            map.put("type_span", "UNDERLINE");
+            map.put("text", text);
+            map.put("underline_i", indicesJson);
+            spannedIndices.add(map);
+        }
+        // FOREGROUND span
+        for (ForegroundColorSpan foregroundColorSpan : foregroundColorSpans) {
+            final HashMap<String, Object> map = new HashMap<>();
+            int[] indices = {span.getSpanStart(foregroundColorSpan), span.getSpanEnd(foregroundColorSpan)};
+            if (indices[0] == 0 && indices[1] == 0)
+                continue;
+
+            final int foreGroundColor = foregroundColorSpan.getForegroundColor();
+            final String text = App.cutString(span.toString(), indices[0], indices[1]);
+            final String indicesJson = new Gson().toJson(indices);
+            final String colorJson = new Gson().toJson(foreGroundColor);
+            map.put("type_span", "FOREGROUND");
+            map.put("text", text);
+            map.put("color", colorJson);
+            map.put("foreground_i", indicesJson);
+            spannedIndices.add(map);
+        }
+        // BACKGROUND span
+        for (BackgroundColorSpan backgroundColorSpan : backgroundColorSpans) {
+            final HashMap<String, Object> map = new HashMap<>();
+            int[] indices = {span.getSpanStart(backgroundColorSpan), span.getSpanEnd(backgroundColorSpan)};
+            if (indices[0] == 0 && indices[1] == 0)
+                continue;
+
+            final int bgColor = backgroundColorSpan.getBackgroundColor();
+            final String text = App.cutString(span.toString(), indices[0], indices[1]);
+            final String indicesJson = new Gson().toJson(indices);
+            final String colorJson = new Gson().toJson(bgColor);
+            map.put("type_span", "BACKGROUND");
+            map.put("text", text);
+            map.put("color", colorJson);
+            map.put("background_i", indicesJson);
+            spannedIndices.add(map);
+        }
+
+        Log.i(TAG, "getSpannedIndices: " + spannedIndices.toString());
+        return spannedIndices;
+    }
+    /*
+     * this will set the span of editTextContent from AddContentView
+     * @when BOLD is clicked, this will be called
+     * @when ITALIC is clicked, this will be called
+     * @when UNDERLINE is clicked, this will be called
+     */
+    private void _setSpan(@NonNull EditText contentView, SpannableStringBuilder spannedContent, Object spanType, int COLOR, String SPAN_TYPE) {
+        if (contentView.getSelectionStart() != contentView.getSelectionEnd()) {
+            final int start = contentView.getSelectionStart();
+            final int end = contentView.getSelectionEnd();
+            final CharSequence selectedText = App.cutString(contentView.getText(), start, end);
+
+            if (spannedContent.length() < contentView.length()) {
+                final String spanned = spannedContent.toString();
+                final String newContent = App.cutString(contentView.getText().toString(), 0, spannedContent.length());
+                if (spanned.equals(newContent))
+                    spannedContent.append(App.cutString(contentView.getText().toString(), spannedContent.length(), contentView.length()));
+                else {
+                    spannedContent.clear();
+                    spannedContent.append(contentView.getText());
+                    _resetSpan(spannedContent);
+                }
+            }
+            // if spanned content is bigger than the new content text it means, the text was changed decremently.
+            if (spannedContent.length() > contentView.length()) {
+                spannedContent.clear();
+                spannedContent.append(contentView.getText());
+                _resetSpan(spannedContent);
+            }
+
+            if (spannedContent.length()>0) {
+                boolean isExist = false;
+                if (spannedIndices.get() != null) {
+                    for (HashMap<String, Object> indexMap : spannedIndices.get()) {
+                        if (selectedText.equals(Objects.requireNonNull(indexMap.get("text")).toString())) {
+                            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(SPAN_TYPE)) {
+                                if (SPAN_TYPE.equals(FOREGROUND) || SPAN_TYPE.equals(BACKGROUND)) {
+                                    final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
+                                    if (COLOR == color) {
+                                        _removeSpan(spannedContent, start, end);
+                                        isExist = true;
+                                    }
+                                    continue;
+                                }
+                                _removeSpan(spannedContent, start, end);
+                                isExist = true;
+                            }
+                            if (isExist)
+                                break;
+                        }
+                    }
+                }
+                if (!isExist)
+                    spannedContent.setSpan(spanType, start, end, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            }
+
+            contentView.setText(spannedContent);
+            contentView.setSelection(start, end);
+            spannedIndices.set(_getSpannedIndices(spannedContent));
+            Log.i(TAG, "_setSpan: INDICES: " + spannedIndices.toString());
+        }
+    }
+
+    private void _removeSpan(@NonNull final SpannableStringBuilder strBldr, final int start, final int end) {
+        final StyleSpan[] styles = strBldr.getSpans(start, end, StyleSpan.class);
+        final UnderlineSpan[] underlineSpans = strBldr.getSpans(start, end, UnderlineSpan.class);
+        final ForegroundColorSpan[] foregroundColorSpans = strBldr.getSpans(start, end, ForegroundColorSpan.class);
+        final BackgroundColorSpan[] backgroundColorSpans = strBldr.getSpans(start, end, BackgroundColorSpan.class);
+
+        for (StyleSpan styleSpan : styles) {
+            if (styleSpan.getStyle() == Typeface.BOLD) {
+                strBldr.removeSpan(styleSpan);
+                continue;
+            }
+            strBldr.removeSpan(styleSpan);
+        }
+
+        for (UnderlineSpan underlineSpan : underlineSpans) {
+            strBldr.removeSpan(underlineSpan);
+        }
+
+        for (ForegroundColorSpan foregroundColorSpan : foregroundColorSpans) {
+            strBldr.removeSpan(foregroundColorSpan);
+        }
+
+        for (BackgroundColorSpan backgroundColorSpan : backgroundColorSpans) {
+            strBldr.removeSpan(backgroundColorSpan);
+        }
+    }
+
+    /*
+    * this will reset the span of contents, cuz it was changed drastically. It will try to find the text
+    * if it cant find the text then it will remove the indices that was stored for that particular text
+    * and set a new list of indices.
+    */
+    private void _resetSpan(final SpannableStringBuilder spannedContent) {
+        final List<HashMap<String, Object>> newSpannedList = new ArrayList<>();
+
+        for (HashMap<String, Object> indexMap : spannedIndices.get()) {
+            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(BOLD)) {
+                _span("bold_i", new StyleSpan(Typeface.BOLD), indexMap, spannedContent, newSpannedList);
+                continue;
+            }
+
+            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(ITALIC)) {
+                _span("italic_i", new StyleSpan(Typeface.ITALIC), indexMap, spannedContent, newSpannedList);
+                continue;
+            }
+
+            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(UNDERLINE)) {
+                _span("underline_i", new UnderlineSpan(), indexMap, spannedContent, newSpannedList);
+                continue;
+            }
+
+            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(FOREGROUND)) {
+                final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
+                _span("foreground_i", new ForegroundColorSpan(color), indexMap, spannedContent, newSpannedList);
+                continue;
+            }
+
+            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(BACKGROUND)) {
+                final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
+                _span("background_i", new BackgroundColorSpan(color), indexMap, spannedContent, newSpannedList);
+            }
+        }
+        spannedIndices.set(newSpannedList);
+    }
+
+    private void _span(final String key, final Object spanType, @NonNull final HashMap<String, Object> indexMap, @NonNull final SpannableStringBuilder spannedContent, final List<HashMap<String, Object>> newSpannedList) {
+        final int[] indices = new Gson().fromJson(Objects.requireNonNull(indexMap.get(key)).toString(), new TypeToken<int[]>() {}.getType());
+        final int newStartIndex = spannedContent.toString().contains(Objects.requireNonNull(indexMap.get("text")).toString()) ?
+                spannedContent.toString().indexOf(Objects.requireNonNull(indexMap.get("text")).toString()) : -1;
+        final int newLastIndex = newStartIndex != -1 ? newStartIndex + (indices[1]-indices[0]) : -1;
+        // it is negative means , it wasnt able to found the text.
+        if (newStartIndex == -1)
+            return;
+
+        spannedContent.setSpan(spanType, newStartIndex, newLastIndex, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+        newSpannedList.add(indexMap);
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     private void _searchContent(@NonNull final String text) {
         if (text.isEmpty()) {
@@ -258,7 +590,7 @@ public class ModuleContentActivity extends AppCompatActivity {
             return;
         }
 
-        jsonContents = new Gson().toJson(contents);
+        String jsonContents = new Gson().toJson(contents);
         final Message msgToHandler = Message.obtain();
         {
             HashMap<String, String> msgMap = new HashMap<>();
@@ -271,7 +603,9 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     @SuppressLint("NotifyDataSetChanged")
     private void _resetAdapter() {
-        adapter = new ModuleContentAdapter(this, contents, null);
+        spannables = _initSpannables();
+        adapter = new ModuleContentAdapter(this, spannables, null);
+        adapter.setOnCardClickListener(cardListener);
         recyclerView.setAdapter(adapter);
         Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
     }
@@ -290,12 +624,41 @@ public class ModuleContentActivity extends AppCompatActivity {
                 if (contents.size() > 0) {
                     {
                         HashMap<String, Object> moduleMap = new HashMap<>();
-                        moduleMap.put(getIntent().getStringExtra("module_key"), contents);
+                        moduleMap.put(Objects.requireNonNull(intentDataMap.get("module_key")).toString(), contents);
                         final int modulePosition = Integer.parseInt(Objects.requireNonNull(intentDataMap.get("module_position")).toString());
                         modules.get(modulePosition).put(Objects.requireNonNull(intentDataMap.get("module_key")).toString(), contents);
                         Log.i("MODULES CONTENT", modules.toString());
                         final int subjectPosition = Integer.parseInt(Objects.requireNonNull(intentDataMap.get("subject_position")).toString());
                         App.getSubjects().get(subjectPosition).put(Objects.requireNonNull(intentDataMap.get("term")).toString(), modules);
+                        database.updateData(moduleMap);
+
+                        if (!(modules.size() > 1)) {
+                            return;
+                        }
+
+                        // update the ALL SUBJECT module.
+                        List<HashMap<String, Object>> allContents = new ArrayList<>();
+                        for (Module module : modules) {
+                            final String key = App.getKey(module);
+                            assert key != null;
+                            if (!key.equals(Module.ALL)) {
+                                final String jsonContent = new Gson().toJson(module.get(key));
+                                Log.i(TAG, "isConnected: JSONCONTENT: " + jsonContent);
+                                Log.i(TAG, "isConnected: NULL: " + "null");
+                                if (!jsonContent.equals("\"null\"")) {
+                                    List<HashMap<String, Object>> contents = new Gson().fromJson(jsonContent, new TypeToken<List<HashMap<String, Object>>>() {}.getType());
+                                    if (contents.size() > 0)
+                                        allContents.addAll(contents);
+                                }
+                            }
+                        }
+
+                        modules.get(modules.size()-1).put(Module.ALL, allContents);
+                        App.getSubjects().get(subjectPosition).put(intentDataMap.get("term").toString(), modules);
+                        new Subject.InternalStorage(ModuleContentActivity.this).store(App.getSubjects());
+
+                        moduleMap = new HashMap<>();
+                        moduleMap.put(Module.ALL, allContents);
                         database.updateData(moduleMap);
                     }
                     return;
@@ -320,19 +683,67 @@ public class ModuleContentActivity extends AppCompatActivity {
                     itemToSave.put(getString(R.string.PREF), App.getDatabaseReference() + "/" + Objects.requireNonNull(intentDataMap.get("subject_key")).toString());
                     itemToSave.put(getString(R.string.CHILD), Objects.requireNonNull(intentDataMap.get("term")).toString());
                     final int modulePosition = Integer.parseInt(Objects.requireNonNull(intentDataMap.get("module_position")).toString());
+                    final int subjectPosition = Integer.parseInt(Objects.requireNonNull(intentDataMap.get("subject_position")).toString());
                     final String moduleKey = Objects.requireNonNull(intentDataMap.get("module_key")).toString();
-                    if (contents.size() > 0)
+
+                    if (contents.size() > 0) {
                         modules.get(modulePosition).put(moduleKey, contents);
-                    else
+
+                        if (modules.size() > 1) {
+                            // update the ALL SUBJECT module.
+                            List<HashMap<String, Object>> allContents = new ArrayList<>();
+                            for (Module module : modules) {
+                                final String key = App.getKey(module);
+                                assert key != null;
+                                if (!key.equals(Module.ALL)) {
+                                    final String jsonContent = new Gson().toJson(module.get(key));
+                                    if (!jsonContent.equals("\"null\"")) {
+                                        List<HashMap<String, Object>> contents = new Gson().fromJson(jsonContent, new TypeToken<List<HashMap<String, Object>>>() {}.getType());
+                                        allContents.addAll(contents);
+                                    }
+                                }
+                            }
+                            Log.i(TAG, "isConnected: ALLCONTENTS: " + allContents.toString());
+                            modules.get(modules.size()-1).put(Module.ALL, allContents);
+                        }
+                    } else
                         // if the program will pass here means the the content is empty, the code block below is a must
                         // bcuz the database will automatically delete the key when empty
                         // so we need to add a new key with a string null value as placeholder.
                         modules.get(modulePosition).put(moduleKey, "null");
 
+                    App.getSubjects().get(subjectPosition).put(intentDataMap.get("term").toString(), modules);
+                    new Subject.InternalStorage(ModuleContentActivity.this).store(App.getSubjects());
+
+                    /*                      TO-DO
+                    * THIS WILL NEED FIXING => this will always add the modules even if
+                    * it already exist in the list.
+                    */
                     meetings.add(modules.get(modulePosition));
+                    if (modules.size() > 0) {
+                        meetings.add(modules.get(modules.size()-1));
+
+                        /*int position1 = 0;
+                        for (Module module1 : meetings) {
+                            String key1 = App.getKey(module1);
+                            if (modules.get(modules.size()-1).containsKey(key1)) {
+                                meetings.remove(position1);
+                                meetings.add(position1, modules.get(modules.size()-1));
+                            }
+                            position1++;
+                        }
+                        if (position1 == meetings.size()) {
+                            meetings.add(modules.get(modules.size()-1));
+                        }*/
+                    }
+
+                    Log.i(TAG, "isNotConnected: MEETINGS-SIZE: " + meetings.size());
+                   // meetings.add(modules.get(modulePosition));
+                   // if (modules.size() > 0) {
+                   //     meetings.add(modules.get(modules.size()-1));
+                   // }
 
                     itemToSave.put(getString(R.string.VALUE), meetings);
-                    Log.i("CONTENT TO SAVE", itemToSave.toString());
                     SavedData.set(Objects.requireNonNull(intentDataMap.get("subject_key")).toString(), itemToSave, false);
                 }
             }
