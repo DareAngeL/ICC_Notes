@@ -17,12 +17,15 @@ import android.widget.EditText;
 import android.widget.Spinner;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.ViewCompat;
 
 import com.tajos.iccnotes.R;
+
+import java.util.Objects;
 
 import iccnote.App;
 
@@ -35,11 +38,17 @@ public class AddDayDialog extends AppCompatDialog {
         this.context = context;
     }
 
+    @Nullable
     private EditText mDayEditTxt;
+    @Nullable
     private EditText mHourEditTxt;
+    @Nullable
     private EditText mMinutesEditTxt;
+    @Nullable
     private CardView mRoot;
+    @Nullable
     private Spinner mDaysSpinner;
+    @Nullable
     private Spinner mMeridiemSpinner;
 
     private boolean hourEditTxtIsError = false;
@@ -65,6 +74,7 @@ public class AddDayDialog extends AppCompatDialog {
         mRoot = findViewById(R.id.root);
         mDaysSpinner = findViewById(R.id.spinner);
         mMeridiemSpinner = findViewById(R.id.meridiem_spinner);
+        assert mDayEditTxt != null;
         mDayEditTxt.setKeyListener(null);
         _initEnterFadeAnimEffect();
 
@@ -77,8 +87,8 @@ public class AddDayDialog extends AppCompatDialog {
         mAddBtn.setOnClickListener(view -> {
             // if the edittext is empty it will error and wont dismiss
             if (mDayEditTxt.getText().toString().isEmpty() ||
-                mHourEditTxt.getText().toString().isEmpty() ||
-                mMinutesEditTxt.getText().toString().isEmpty()) {
+                Objects.requireNonNull(mHourEditTxt).getText().toString().isEmpty() ||
+                Objects.requireNonNull(mMinutesEditTxt).getText().toString().isEmpty()) {
 
                 _error();
                 return;
@@ -90,6 +100,7 @@ public class AddDayDialog extends AppCompatDialog {
             }
         });
         // days spinner listener
+        assert mDaysSpinner != null;
         mDaysSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int position, long l) {
@@ -104,6 +115,7 @@ public class AddDayDialog extends AppCompatDialog {
             public void onNothingSelected(AdapterView<?> adapterView) {}
         });
         // hour edittext listener
+        assert mHourEditTxt != null;
         mHourEditTxt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
@@ -120,6 +132,7 @@ public class AddDayDialog extends AppCompatDialog {
             public void afterTextChanged(Editable editable) {}
         });
         // minutes edittext listener
+        assert mMinutesEditTxt != null;
         mMinutesEditTxt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
@@ -141,7 +154,9 @@ public class AddDayDialog extends AppCompatDialog {
     }
 
     private boolean isHourAndMinutesCorrectFormat() {
+        assert mHourEditTxt != null;
         final int hour = Integer.parseInt(mHourEditTxt.getText().toString());
+        assert mMinutesEditTxt != null;
         final int minutes = Integer.parseInt(mMinutesEditTxt.getText().toString());
 
         if (hour <= 12) {
@@ -177,20 +192,26 @@ public class AddDayDialog extends AppCompatDialog {
 
     @NonNull
     private String _getTime() {
+        assert mHourEditTxt != null;
         final String hour = mHourEditTxt.getText().toString();
+        assert mMinutesEditTxt != null;
         final String minutes = mMinutesEditTxt.getText().toString();
 
+        assert mMeridiemSpinner != null;
         return hour + ":" + minutes + " " + mMeridiemSpinner.getSelectedItem().toString();
     }
 
     private void _error() {
+        assert mDayEditTxt != null;
         if (mDayEditTxt.getText().toString().isEmpty()) {
             App.animateErrorEffect(context, mDayEditTxt);
         }
+        assert mHourEditTxt != null;
         if (mHourEditTxt.getText().toString().isEmpty()) {
             hourEditTxtIsError = true;
             App.animateErrorEffect(context, mHourEditTxt);
         }
+        assert mMinutesEditTxt != null;
         if (mMinutesEditTxt.getText().toString().isEmpty()) {
             minutesEditTxtIsError= true;
             App.animateErrorEffect(context, mMinutesEditTxt);
