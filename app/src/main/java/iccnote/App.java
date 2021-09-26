@@ -14,6 +14,7 @@ import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.ViewCompat;
@@ -34,7 +35,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public class App {
+    private static final String TAG = "APP";
     private static List<Subject> mSubjects;
+    @Nullable
     private static String mCurrentDay;
     private static final String mDatabaseReference = "Subjects";
 
@@ -42,10 +45,11 @@ public class App {
         return mDatabaseReference;
     }
 
-    public static void setCurrentDay(final String currentDay) {
+    public static void setCurrentDay(@Nullable final String currentDay) {
         mCurrentDay = currentDay;
     }
 
+    @Nullable
     public static String getCurrentDay() {
         return mCurrentDay;
     }
@@ -134,6 +138,7 @@ public class App {
         imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
     }
 
+    @Nullable
     public static String getKey(Map<String, Object> map) {
         if (map == null || map.size() <= 0)
             return null;
@@ -145,6 +150,7 @@ public class App {
         return key;
     }
 
+    @Nullable
     public static List<String> getKeys(Map<String, Object> map) {
         if (map == null || map.size() <= 0)
             return null;
@@ -170,6 +176,7 @@ public class App {
         List<Module> modulesList = new ArrayList<>(); // the list array to be stored and return.
 
         for (int i = 0; i< modulesLnkdMap.size(); i++) {
+            assert keys != null;
             final Module module = new Module(keys.get(i), modulesLnkdMap.get(keys.get(i)));
             modulesList.add(module);
         }
@@ -185,6 +192,7 @@ public class App {
 
         for (Module module : unsortedModule) {
             String unsortedModuleKey = getKey(module);
+            assert unsortedModuleKey != null;
             int numFromUnsorted = convertCharToInt(unsortedModuleKey);
             if (numFromUnsorted == -1) { // if its value is negative it means its an all modules section
                 allModulesKeyMap = module;
@@ -195,6 +203,7 @@ public class App {
                 int pos = 0; // position of the sorted modules
                 for (Module sortedModule : sortedModules) {
                     String sortedModuleKey = getKey(sortedModule);
+                    assert sortedModuleKey != null;
                     int numFromSorted = convertCharToInt(sortedModuleKey);
                     if (numFromUnsorted < numFromSorted) {
                         sortedModules.add(pos, module);
@@ -230,16 +239,19 @@ public class App {
     }
 
     @NonNull
-    public static List<Module> convertObjectToList(final Object obj) {
+    public static List<Module> convertObjectToListModule(@Nullable final Object obj) {
         final String jsonObject = new Gson().toJson(obj);
         Log.i("JSON OBJECT", jsonObject);
         LinkedTreeMap<String, Object> lnkTreeMap = new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType()) instanceof ArrayList ?
                 convertArrayToLnkedTree(new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType())) : new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType());
 
-        Log.i("LNKDTREEMAP", lnkTreeMap.toString());
+        if (lnkTreeMap == null)
+            return new ArrayList<>();
+
         final List<Module> modules = new ArrayList<>();
         final List<String> keys = getKeys(lnkTreeMap);
         for (int i=0; i<lnkTreeMap.size(); i++) {
+            assert keys != null;
             modules.add(new Module(keys.get(i), lnkTreeMap.get(keys.get(i))));
         }
         Log.i("LISTMAP", modules.toString());
@@ -247,7 +259,7 @@ public class App {
     }
 
     @NonNull
-    public static HashMap<String, Object> convertObjectToHashMap(final Object obj) {
+    public static HashMap<String, Object> convertObjectToHashMap(@Nullable final Object obj) {
         final String jsonObject = new Gson().toJson(obj);
         LinkedTreeMap<String, Object> lnkTreeMap = new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType()) instanceof ArrayList ?
                 convertArrayToLnkedTree(new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType())) : new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType());
@@ -255,6 +267,7 @@ public class App {
         Log.i("ObjectToHashMap", lnkTreeMap.toString());
         final HashMap<String, Object> map = new HashMap<>();
         final List<String> keys = getKeys(lnkTreeMap);
+        assert keys != null;
         for (String key : keys) {
             map.put(key, lnkTreeMap.get(key));
         }
@@ -266,6 +279,7 @@ public class App {
         LinkedTreeMap<String, Object> map = new LinkedTreeMap<>();
         for (Map<String, Object> mod : array) {
             String key = getKey(mod);
+            assert key != null;
             map.put(key, mod.get(key));
         }
         return map;
