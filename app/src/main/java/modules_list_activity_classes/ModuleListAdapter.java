@@ -106,14 +106,14 @@ public class ModuleListAdapter extends RecyclerView.Adapter<ModuleListAdapter.Vi
             context.startActivity(intent);
         });
         // mainRoot on long click
-        if (position != data.size()-1 || key.equals(Module.FIRST_MEETING)) {
+        if (position != data.size()-1 || Objects.equals(key, Module.FIRST_MEETING)) {
             mainRoot.setOnLongClickListener(view -> {
                 // is on delete mode
                 if (!isOnDeleteMode) {
                     deleteIcon.setVisibility(View.VISIBLE);
                     mainRoot.setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.delete_bg_clor, null));
                     isOnDeleteMode = true;
-                    return isOnDeleteMode;
+                    return true;
                 }
                 // is not on delete mode
                 deleteIcon.setVisibility(View.GONE);
@@ -124,7 +124,7 @@ public class ModuleListAdapter extends RecyclerView.Adapter<ModuleListAdapter.Vi
         }
         // on delete icon clicked
         deleteIcon.setOnClickListener(view -> {
-            if (position == data.size()-2 || key.equals(Module.FIRST_MEETING)) {
+            if (position == data.size()-2 || Objects.equals(key, Module.FIRST_MEETING)) {
                 mListener.onDeleteBtnClick(position);
                 deleteIcon.setVisibility(View.GONE);
                 mainRoot.setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));

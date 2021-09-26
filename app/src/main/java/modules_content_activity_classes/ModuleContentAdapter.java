@@ -10,21 +10,23 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.tajos.iccnotes.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import layouts.RoundedLayout;
 
 public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdapter.ViewHolder> {
-    private static final String TAG = "ModuleContentAdapter";
     private static boolean isOnSearchMode = false;
 
-    private List<String> data;
-    private List<SpannableStringBuilder> spannedContents;
+    @Nullable
+    private List<SpannableStringBuilder> data = new ArrayList<>();
+    private List<SpannableStringBuilder> searchedContents;
     private final Context context;
 
     public OnCardClickedListener mListener = null;
@@ -37,10 +39,10 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         mListener = listener;
     }
 
-    public ModuleContentAdapter(final Context cn, final List<String> data, final List<SpannableStringBuilder> spanned) {
-        if (spanned != null) {
+    public ModuleContentAdapter(final Context cn, @Nullable final List<SpannableStringBuilder> data, @Nullable final List<SpannableStringBuilder> searchSpanned) {
+        if (searchSpanned != null) {
             isOnSearchMode = true;
-            spannedContents = spanned;
+            searchedContents = searchSpanned;
             context = cn;
             return;
         }
@@ -67,12 +69,12 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         final TextView txt = _view.findViewById(R.id.txtview_content);
 
         if (isOnSearchMode) {
-
-            txt.setText(spannedContents.get(position));
+            txt.setText(searchedContents.get(position));
             return; // we will return cuz we dont want to initialize the listeners if we are on search mode.
         }
 
         // we will just return if we are already in the last position which is only for the margin effect
+        assert data != null;
         if (position == data.size()) {
             card.setVisibility(View.INVISIBLE);
             return;
@@ -122,8 +124,9 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
     @Override
     public int getItemCount() {
         if (isOnSearchMode)
-            return spannedContents.size() + 1; // we add one so we can have margin effect below the recyclerview
+            return searchedContents.size() + 1; // we add one so we can have margin effect below the recyclerview
 
+        assert data != null;
         return data.size() + 1; // we add one so we can have margin effect below the recyclerview
     }
 

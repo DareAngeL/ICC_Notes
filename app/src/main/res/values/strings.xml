@@ -29,4 +29,5 @@
     <string name="PREF">pref</string>
     <string name="CHILD">child</string>
     <string name="VALUE">value</string>
+    <string name="SUBJECT_REMOVAL">for_subject_removal</string>
 </resources>

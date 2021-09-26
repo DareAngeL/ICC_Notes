@@ -125,6 +125,7 @@ public class RoundedLayout extends FrameLayout {
 
     public void setBorderColor(int borderColor) {
         this.borderColor = borderColor;
+        this.borderPaint.setColor(borderColor);
         invalidate();
     }
 

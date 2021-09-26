@@ -1,6 +1,7 @@
 package iccnote;
 
-import java.util.ArrayList;
+import androidx.annotation.Nullable;
+
 import java.util.HashMap;
                             // modules,  modules content
 public class Module extends HashMap<String, Object> {
@@ -11,7 +12,7 @@ public class Module extends HashMap<String, Object> {
     public static final String FIFTH_MEETING = "5th Meeting";
     public static final String ALL = "ALL MODULES";
 
-    public Module(final String moduleName, final Object content) {
+    public Module(final String moduleName, @Nullable final Object content) {
         put(moduleName, content);
     }
 

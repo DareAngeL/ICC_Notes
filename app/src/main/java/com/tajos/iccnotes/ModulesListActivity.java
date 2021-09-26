@@ -1,5 +1,6 @@
 package com.tajos.iccnotes;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -72,14 +73,15 @@ public class ModulesListActivity extends AppCompatActivity {
     // check the module size, if its only one remaining which is the
     // all modules card - clear the module list.
     private void _checkModulesSize() {
-        if (modules.size() == 1) {
-            final Module module = modules.get(0);
-            if (App.getKey(module).equals(Module.ALL) || App.getKey(module).equals(Module.FIRST_MEETING)) {
-                modules.clear();
-                App.getSubjects().get(position).put(staticTerm, "null");
+        if (modules.size() == 2) {
+            final Module module = modules.get(1);
+            if (Objects.equals(App.getKey(module), Module.ALL) /*|| Objects.equals(App.getKey(module), Module.FIRST_MEETING)*/) {
+                modules.remove(1);
+                App.getSubjects().get(position).put(staticTerm, modules);
                 _checkNetworkAndUpdateDatabase(Module.ALL);
             }
         }
+
     }
 
     @Override
@@ -96,7 +98,7 @@ public class ModulesListActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (isFromModuleContent) {
-            final List<Module> updatedModules = App.convertObjectToList(App.getSubjects().get(position).get(staticTerm));
+            final List<Module> updatedModules = App.convertObjectToListModule(App.getSubjects().get(position).get(staticTerm));
             Log.i("UPDATED MODULES", updatedModules.toString());
             modules = App.sortModules(updatedModules);
             adapter = new ModuleListAdapter(this, modules, intentDataMap);
@@ -187,7 +189,7 @@ public class ModulesListActivity extends AppCompatActivity {
     * check network and update the database if connected to internet.
     * or just only store to internal storage if not connected to internet
     */
-    private void _checkNetworkAndUpdateDatabase(String keyForRemoving) {
+    private void _checkNetworkAndUpdateDatabase(@Nullable String keyForRemoving) {
         Log.i("SUBJECT", App.getSubjects().get(position).toString());
         new Thread(new InternetConnection(this, new InternetConnection.OnConnectionResponseListener() {
             @Override
@@ -209,7 +211,7 @@ public class ModulesListActivity extends AppCompatActivity {
         })).start();
     }
 
-    private void _updateDatabase(final String key, final boolean isAddingModules) {
+    private void _updateDatabase(@Nullable final String key, final boolean isAddingModules) {
         final String referenceForAdding = App.getDatabaseReference() + "/" + this.key;
         final String referenceForRemoving = App.getDatabaseReference()+"/"+this.key+"/"+staticTerm;
         Log.i("REFERENCE", referenceForRemoving);
@@ -228,6 +230,7 @@ public class ModulesListActivity extends AppCompatActivity {
         database.removeData();
         // when removing all modules/meetings always update the database
         // with a null string value
+        assert key != null;
         if (key.equals(Module.FIRST_MEETING)) {
             database = new FirebaseDB(referenceForAdding, false, null);
             database.updateData(new Module(staticTerm, "null"));
@@ -239,7 +242,7 @@ public class ModulesListActivity extends AppCompatActivity {
     * will be push to the server automatically.
     */
     private int removalItemsCount = 0;
-    private void _saveData(final String keyToRemove) {
+    private void _saveData(@Nullable final String keyToRemove) {
         if (isOnAddingModules) {
             {
                 if (! itemToSave.containsKey(getString(R.string.PREF)) && ! itemToSave.containsKey(getString(R.string.CHILD))) {
@@ -265,6 +268,7 @@ public class ModulesListActivity extends AppCompatActivity {
             meetingsToRemove.add(new Module("key"+removalItemsCount, keyToRemove));
 
             itemToDelete.put("remainingModule", true);
+            assert keyToRemove != null;
             if (keyToRemove.equals(Module.FIRST_MEETING)) {
                 itemToDelete.put("remainingModule", false);
             }
