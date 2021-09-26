@@ -1,6 +1,7 @@
 package iccnote;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -26,7 +27,7 @@ public class FirebaseDB {
         _getAllData();
     }
 
-    public FirebaseDB(@NonNull final String reference, final boolean isChild, final String childKey) {
+    public FirebaseDB(@NonNull final String reference, final boolean isChild, @Nullable final String childKey) {
         final FirebaseDatabase mDatabase = FirebaseDatabase.getInstance();
         if (isChild && childKey != null) {
             mReference = mDatabase.getReference(reference).child(childKey);
