@@ -1,14 +1,21 @@
 package home_activity_classes;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -23,12 +30,23 @@ import iccnote.Subject;
 import layouts.RoundedLayout;
 
 public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.ViewHolder> {
+    private static final String TAG = "SUBJECTLISTADAPTER";
     private final List<Subject> data;
     private final Context context;
 
-    public SubjectLstAdapter(final Context cn, final List<Subject> data) {
+    public SubjectLstAdapter(final Context cn, @NonNull final List<Subject> data) {
         context = cn;
         this.data = data;
+        Log.i(TAG, "SubjectLstAdapter: LIST: " + data.toString());
+    }
+
+    public OnItemClickListener mListener;
+    public interface OnItemClickListener{
+        void onDeleteButtonClick(final String key, final int position);
+    }
+
+    public void setOnItemClickListener(final OnItemClickListener listener) {
+        mListener = listener;
     }
 
     @NonNull
@@ -39,16 +57,61 @@ public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.Vi
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
         View _view = holder.itemView;
         final RoundedLayout card = _view.findViewById(R.id.card_root);
+        final FrameLayout filterLayout = _view.findViewById(R.id.filter_layout);
         final ImageView imgThumbnail = _view.findViewById(R.id.img);
         final TextView subjectName = _view.findViewById(R.id.subject_name);
+        final LinearLayout subjectNameRoot = _view.findViewById(R.id.subject_name_root);
         final TextView subjectTime = _view.findViewById(R.id.time);
+        final ImageButton deleteBtn = _view.findViewById(R.id.delete_btn);
         final List<Subject> data = App.getSubjects();
 
+        final boolean[] isOnDeleteMode = {false};
+        final String key = Objects.requireNonNull(data.get(position).get("key")).toString();
+
         // listener ==> when card is clicked
-        card.setOnClickListener(view -> new SchoolTermsDialog(context, position).show());
+        card.setOnClickListener(view -> {
+            if (! isOnDeleteMode[0]) {
+                new SchoolTermsDialog(context, position).show();
+                return;
+            }
+            isOnDeleteMode[0] = false;
+            deleteBtn.setVisibility(View.GONE);
+            card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
+            subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.colorAccent, null)));
+            filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilter, null)));
+        });
+
+        card.setOnLongClickListener(view -> {
+            if (! isOnDeleteMode[0]) {
+                isOnDeleteMode[0] = true;
+
+                deleteBtn.setVisibility(View.VISIBLE);
+                card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.red, null));
+                subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.red, null)));
+                filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilterRed, null)));
+                return true;
+            }
+
+            isOnDeleteMode[0] = false;
+            deleteBtn.setVisibility(View.GONE);
+            card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
+            subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.colorAccent, null)));
+            filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilter, null)));
+            return true;
+        });
+
+        deleteBtn.setOnClickListener(view -> {
+            isOnDeleteMode[0] = false;
+            deleteBtn.setVisibility(View.GONE);
+            card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
+            subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.colorAccent, null)));
+            filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilter, null)));
+
+            mListener.onDeleteButtonClick(key, position);
+        });
 
         if(!(Objects.requireNonNull(data.get(position).get("Subject Day"))).toString().equals(App.getCurrentDay())) {
             final Random random = new Random();
