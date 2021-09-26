@@ -42,6 +42,7 @@ import home_activity_classes.SubjectLstAdapter;
 import iccnote.App;
 import iccnote.FirebaseDB;
 import iccnote.InternetConnection;
+import iccnote.LoadingDlg;
 import iccnote.Module;
 import iccnote.SavedData;
 import iccnote.Subject;
@@ -58,11 +59,15 @@ public class HomeActivity extends AppCompatActivity {
     private ImageView mImage;
     private View mSceneRootChild;
     private SwipeRefreshLayout refreshLayout;
+    private LoadingDlg loadingDlg;
 
     private boolean isFirstInit = true; // boolean to check if its the first time opening the app
 
     private List<Subject> mSubjects = new ArrayList<>();
+    @Nullable
     private Uri mImgPath;
+
+    private SubjectLstAdapter.OnItemClickListener deleteBtnListener;
 
     private final Intent mPickImage = new Intent(Intent.ACTION_GET_CONTENT);
     private Subject.InternalStorage mInternalStorageHandler;
@@ -72,6 +77,7 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.home_activity);
         FirebaseApp.initializeApp(this);
+        loadingDlg = new LoadingDlg(this);
 
         mPickImage.setType("image/*");
         _initBundles();
@@ -121,6 +127,9 @@ public class HomeActivity extends AppCompatActivity {
             =========== INITIALIZE THE BUNDLES ==========
     */
     private boolean isDropped = true;
+    private HashMap<String, Object> itemToDelete = new HashMap<>();
+    private List<HashMap<String, Object>> subjectsForRemoval = new ArrayList<>();
+    private int itemForRemovalCount = 0;
     private void _initBundles() {
         final ImageView mDropDown = findViewById(R.id.drop_down);
         mDay = findViewById(R.id.edittext_day);
@@ -132,6 +141,46 @@ public class HomeActivity extends AppCompatActivity {
         */
         // swipe refresh listener
         refreshLayout.setOnRefreshListener(this::_initializeApp);
+        // subject list adapter item listener
+        deleteBtnListener = (key, position) -> {
+            // on delete button clicked
+            new Thread(new InternetConnection(HomeActivity.this, new InternetConnection.OnConnectionResponseListener() {
+                @Override
+                public void isConnected() {
+                    // update database and remove data
+                    final FirebaseDB referenceDB = new FirebaseDB(App.getDatabaseReference(), true, key);
+                    referenceDB.removeData();
+
+                    mSubjects.remove(position);
+                    mSubjectLstAdapter.notifyItemRemoved(position);
+                    App.setSubjectsLst(mSubjects);
+                    Toast.makeText(HomeActivity.this, "Database Updated!", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void isNotConnected() {
+                    // saved the data for removal next login with internet connection
+
+                    if (!itemToDelete.containsKey(getString(R.string.PREF)) && ! itemToDelete.containsKey(getString(R.string.CHILD))) {
+                        itemToDelete.put(getString(R.string.PREF), App.getDatabaseReference());
+                        itemToDelete.put(getString(R.string.CHILD), "null");
+                        itemToDelete.put(getString(R.string.SUBJECT_REMOVAL), true);
+                    }
+                    HashMap<String, Object> item = new HashMap<>();
+                    item.put("key"+itemForRemovalCount, key);
+                    subjectsForRemoval.add(item);
+                    itemToDelete.put(getString(R.string.VALUE), subjectsForRemoval);
+                    SavedData.set(key, itemToDelete, true);
+
+                    mSubjects.remove(position);
+                    mSubjectLstAdapter.notifyItemRemoved(position);
+                    App.setSubjectsLst(mSubjects);
+
+                    itemForRemovalCount++;
+                    Toast.makeText(HomeActivity.this, "Database NOT Updated!", Toast.LENGTH_SHORT).show();
+                }
+            })).start();
+        };
         // drop down card listener
         mDropDown.setOnClickListener(view -> mAddSubjectCard.drop());
         // initialize addSubjectAnimator here
@@ -195,12 +244,10 @@ public class HomeActivity extends AppCompatActivity {
             Log.i("SORTED SUBJECTS", mSubjects.toString());
             _setAdapter(); // sets the adapter of subjectLst
             _storeSubjectsToInternal(); // always store the subjects to internal storage
+            loadingDlg.dismiss();
         });
     }
 
-    /*
-    ========= LOGIC OF THE PROGRAM ===========
-    */
     private void _initLogic() {
         final Calendar calendar = Calendar.getInstance();
         mDay.setText(_getCurrentDay(calendar.get(Calendar.DAY_OF_WEEK)));
@@ -219,6 +266,7 @@ public class HomeActivity extends AppCompatActivity {
         * @ InternetConnection object is a @Runnable which will
         * be used as a parameter for background thread @Thread.
         */
+        loadingDlg.show();
         new Thread(new InternetConnection(this, new InternetConnection.OnConnectionResponseListener() {
             @Override
             public void isConnected() {
@@ -251,11 +299,11 @@ public class HomeActivity extends AppCompatActivity {
                     mInternalStorageHandler = new Subject.InternalStorage(HomeActivity.this);
 
                 mSubjects = mInternalStorageHandler.getSubjects();
-                Log.i("SUBJECTS F INTERNAL", mSubjects.toString());
+
                 _sortSubjects();
-                Log.i("INTERNAL (SORTED)", mSubjects.toString());
                 _setAdapter();
                 _doneRefreshing();
+                loadingDlg.dismiss();
             }
         })).start();
     }
@@ -265,24 +313,38 @@ public class HomeActivity extends AppCompatActivity {
             refreshLayout.setRefreshing(false);
     }
 
+    /*
+    * Initialize saved data, push it to the server if there's any saved data and internet connection
+    * Otherwise, don't push it.
+    */
     private void _initSavedData(@NonNull HashMap<String, Object> map, String key, boolean isForRemovingData) {
         HashMap<String, Object> savedDataPerSubject = App.convertObjectToHashMap(map.get(key));
         Log.i("SAVEDPERSUBJECT", savedDataPerSubject.toString());
-        final String reference = Objects.requireNonNull(savedDataPerSubject.get(getString(R.string.PREF))).toString();
         final String childKey = Objects.requireNonNull(savedDataPerSubject.get(getString(R.string.CHILD))).toString();
-        final List<Module> modules = App.convertObjectToList(savedDataPerSubject.get(getString(R.string.VALUE)));
+        final String reference = Objects.requireNonNull(savedDataPerSubject.get(getString(R.string.PREF))).toString();
+        final List<Module> dataForRemoval = App.convertObjectToListModule(savedDataPerSubject.get(getString(R.string.VALUE)));
         if (!isForRemovingData) {
             final FirebaseDB updateDB = new FirebaseDB(reference, true, childKey);
-            for (Module module : modules) {
+            for (Module module : dataForRemoval) {
                 updateDB.updateData(module);
             }
             SavedData.clear(SavedData.PUSH);
             return;
         }
         // if the data will not be pushed; it means it is for removal
+        if (savedDataPerSubject.containsKey(getString(R.string.SUBJECT_REMOVAL))) {
+            for (Module module : dataForRemoval) {
+                final String moduleKey = App.getKey(module);
+                final FirebaseDB updateDB = new FirebaseDB(App.getDatabaseReference(), true, Objects.requireNonNull(module.get(moduleKey)).toString());
+                updateDB.removeData();
+            }
+            SavedData.clear(SavedData.REMOVAL);
+            return;
+        }
+
         final String isThereRemainingModules = Objects.requireNonNull(savedDataPerSubject.get("remainingModule")).toString();
-        Log.i("MODULE SIZE", String.valueOf(modules.size()));
-        for (Module module : modules) {
+        Log.i("MODULE SIZE", String.valueOf(dataForRemoval.size()));
+        for (Module module : dataForRemoval) {
             final String moduleKey = App.getKey(module);
             final FirebaseDB updateDB = new FirebaseDB(reference, true, Objects.requireNonNull(module.get(moduleKey)).toString());
             updateDB.removeData();
@@ -301,6 +363,10 @@ public class HomeActivity extends AppCompatActivity {
         SavedData.clear(SavedData.REMOVAL);
     }
 
+    /*
+    * Always store the subjects data to internal storage for offline purposes. In case, there is no
+    * internet connectivity, we can still access the subjects data via offline.
+    */
     private void _storeSubjectsToInternal() {
         if (mInternalStorageHandler == null)
             mInternalStorageHandler = new Subject.InternalStorage(this);
@@ -308,16 +374,22 @@ public class HomeActivity extends AppCompatActivity {
         mInternalStorageHandler.store(mSubjects);
     }
 
+    /*
+    * Sets the adapter of Subjects Recyclerview.
+    */
     @SuppressLint("NotifyDataSetChanged")
     private void _setAdapter() {
         mSubjectLstAdapter = new SubjectLstAdapter(this, mSubjects);
+        mSubjectLstAdapter.setOnItemClickListener(deleteBtnListener);
         mSubjectLstRecycler.setItemViewCacheSize(4);
         mSubjectLstRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         mSubjectLstRecycler.setAdapter(mSubjectLstAdapter);
         Objects.requireNonNull(mSubjectLstRecycler.getAdapter()).notifyDataSetChanged();
     }
 
-    // always update the subject list whenever theres a new subject added
+    /*
+    * always update the subject list whenever theres a new subject added
+    */
     private void _updateSubjectsLst(final String subjectName, final String subjectDay, final String time, @NonNull final Uri imagePath) {
         final String imgName = Uri.parse(imagePath.toString()).getLastPathSegment();
         final Subject.FirebaseImageStorage firebaseImageStorage = new Subject.FirebaseImageStorage(this, mDatabase, new Subject(subjectName, subjectDay, time, imagePath));
@@ -366,7 +438,9 @@ public class HomeActivity extends AppCompatActivity {
         if (isFirstInit) {
             isFirstInit = false;
             _sort();
-            mSubjectLstRecycler.setAdapter(new SubjectLstAdapter(this, mSubjects));
+            mSubjectLstAdapter = new SubjectLstAdapter(this, mSubjects);
+            mSubjectLstAdapter.setOnItemClickListener(deleteBtnListener);
+            mSubjectLstRecycler.setAdapter(mSubjectLstAdapter);
             Objects.requireNonNull(mSubjectLstRecycler.getAdapter()).notifyDataSetChanged();
             return;
         }
@@ -379,7 +453,9 @@ public class HomeActivity extends AppCompatActivity {
         }
         // sort if the added subject is for today.
         _sort();
-        mSubjectLstRecycler.setAdapter(new SubjectLstAdapter(this, mSubjects));
+        mSubjectLstAdapter = new SubjectLstAdapter(this, mSubjects);
+        mSubjectLstAdapter.setOnItemClickListener(deleteBtnListener);
+        mSubjectLstRecycler.setAdapter(mSubjectLstAdapter);
         Objects.requireNonNull(mSubjectLstRecycler.getAdapter()).notifyDataSetChanged();
     }
 
