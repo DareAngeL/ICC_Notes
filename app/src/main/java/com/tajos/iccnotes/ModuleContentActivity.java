@@ -67,8 +67,8 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     private final HashMap<String, Object> intentDataMap = new HashMap<>();
     private final static List<Module> meetings = new ArrayList<>();
+    private static List<HashMap<String, Object>> contents = new ArrayList<>();
     private List<Module> modules = new ArrayList<>();
-    private List<HashMap<String, Object>> contents = new ArrayList<>();
     private List<SpannableStringBuilder> spannables;
 
     private ModuleContentAdapter adapter;
@@ -118,8 +118,10 @@ public class ModuleContentActivity extends AppCompatActivity {
         intentDataMap.put("subject_position", getIntent().getIntExtra("subject_position", -1));
         intentDataMap.put("module_position", getIntent().getIntExtra("module_position", -1));
 
-        if (jsonContentFromIntent.equals("null"))
+        if (jsonContentFromIntent.equals("null")) {
+            contents = new ArrayList<>();
             return;
+        }
 
         contents = new Gson().fromJson(jsonContentFromIntent, new TypeToken<List<HashMap<String, Object>>>(){}.getType());
     }
@@ -187,7 +189,7 @@ public class ModuleContentActivity extends AppCompatActivity {
             boolean isOnSearchContentView = true;
             @Override
             public void onClick(View view) {
-                if (intentDataMap.get("module_key").toString().equals(Module.ALL)) {
+                if (Objects.requireNonNull(intentDataMap.get("module_key")).toString().equals(Module.ALL)) {
                     Toast.makeText(ModuleContentActivity.this, "You can't add content, you are in ALL MODULES page!", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -210,7 +212,7 @@ public class ModuleContentActivity extends AppCompatActivity {
     * This will initialize the content for Add content view;
     */
     private boolean isEditTextContentOnError = false; // boolean for edittext content if its on error or not.
-    private final AtomicReference<List<HashMap<String, Object>>> spannedIndices = new AtomicReference<>();
+    private static final AtomicReference<List<HashMap<String, Object>>> spannedIndices = new AtomicReference<>();
     @SuppressLint({"NotifyDataSetChanged", "InflateParams"})
     private void _initAddContentView() {
         _resetAdapter(); // always reset the adapter.
@@ -330,7 +332,7 @@ public class ModuleContentActivity extends AppCompatActivity {
     * @used in checkBtn View listener inside _initAddContentView method.
     */
     @NonNull
-    private List<SpannableStringBuilder> _initSpannables() {
+    public static List<SpannableStringBuilder> _initSpannables() {
         List<SpannableStringBuilder> spannedContents = new ArrayList<>();
 
         for (HashMap<String, Object> spanMap : contents) {
@@ -537,7 +539,7 @@ public class ModuleContentActivity extends AppCompatActivity {
     * if it cant find the text then it will remove the indices that was stored for that particular text
     * and set a new list of indices.
     */
-    private void _resetSpan(final SpannableStringBuilder spannedContent) {
+    private static void _resetSpan(final SpannableStringBuilder spannedContent) {
         final List<HashMap<String, Object>> newSpannedList = new ArrayList<>();
 
         for (HashMap<String, Object> indexMap : spannedIndices.get()) {
@@ -570,7 +572,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         spannedIndices.set(newSpannedList);
     }
 
-    private void _span(final String key, final Object spanType, @NonNull final HashMap<String, Object> indexMap, @NonNull final SpannableStringBuilder spannedContent, final List<HashMap<String, Object>> newSpannedList) {
+    private static void _span(final String key, final Object spanType, @NonNull final HashMap<String, Object> indexMap, @NonNull final SpannableStringBuilder spannedContent, final List<HashMap<String, Object>> newSpannedList) {
         final int[] indices = new Gson().fromJson(Objects.requireNonNull(indexMap.get(key)).toString(), new TypeToken<int[]>() {}.getType());
         final int newStartIndex = spannedContent.toString().contains(Objects.requireNonNull(indexMap.get("text")).toString()) ?
                 spannedContent.toString().indexOf(Objects.requireNonNull(indexMap.get("text")).toString()) : -1;
@@ -590,7 +592,9 @@ public class ModuleContentActivity extends AppCompatActivity {
             return;
         }
 
-        String jsonContents = new Gson().toJson(contents);
+        final List<SpannableStringBuilder> contentList = _initSpannables();
+
+        String jsonContents = new Gson().toJson(contentList);
         final Message msgToHandler = Message.obtain();
         {
             HashMap<String, String> msgMap = new HashMap<>();
@@ -632,6 +636,8 @@ public class ModuleContentActivity extends AppCompatActivity {
                         App.getSubjects().get(subjectPosition).put(Objects.requireNonNull(intentDataMap.get("term")).toString(), modules);
                         database.updateData(moduleMap);
 
+                        // if the module size is not greater than one then just return it
+                        // cuz we dont need to update the ALL SUBJECT module if there is only one module
                         if (!(modules.size() > 1)) {
                             return;
                         }
@@ -643,8 +649,6 @@ public class ModuleContentActivity extends AppCompatActivity {
                             assert key != null;
                             if (!key.equals(Module.ALL)) {
                                 final String jsonContent = new Gson().toJson(module.get(key));
-                                Log.i(TAG, "isConnected: JSONCONTENT: " + jsonContent);
-                                Log.i(TAG, "isConnected: NULL: " + "null");
                                 if (!jsonContent.equals("\"null\"")) {
                                     List<HashMap<String, Object>> contents = new Gson().fromJson(jsonContent, new TypeToken<List<HashMap<String, Object>>>() {}.getType());
                                     if (contents.size() > 0)
@@ -654,7 +658,7 @@ public class ModuleContentActivity extends AppCompatActivity {
                         }
 
                         modules.get(modules.size()-1).put(Module.ALL, allContents);
-                        App.getSubjects().get(subjectPosition).put(intentDataMap.get("term").toString(), modules);
+                        App.getSubjects().get(subjectPosition).put(Objects.requireNonNull(intentDataMap.get("term")).toString(), modules);
                         new Subject.InternalStorage(ModuleContentActivity.this).store(App.getSubjects());
 
                         moduleMap = new HashMap<>();
@@ -712,7 +716,7 @@ public class ModuleContentActivity extends AppCompatActivity {
                         // so we need to add a new key with a string null value as placeholder.
                         modules.get(modulePosition).put(moduleKey, "null");
 
-                    App.getSubjects().get(subjectPosition).put(intentDataMap.get("term").toString(), modules);
+                    App.getSubjects().get(subjectPosition).put(Objects.requireNonNull(intentDataMap.get("term")).toString(), modules);
                     new Subject.InternalStorage(ModuleContentActivity.this).store(App.getSubjects());
 
                     /*                      TO-DO
@@ -720,28 +724,8 @@ public class ModuleContentActivity extends AppCompatActivity {
                     * it already exist in the list.
                     */
                     meetings.add(modules.get(modulePosition));
-                    if (modules.size() > 0) {
+                    if (modules.size() > 0)
                         meetings.add(modules.get(modules.size()-1));
-
-                        /*int position1 = 0;
-                        for (Module module1 : meetings) {
-                            String key1 = App.getKey(module1);
-                            if (modules.get(modules.size()-1).containsKey(key1)) {
-                                meetings.remove(position1);
-                                meetings.add(position1, modules.get(modules.size()-1));
-                            }
-                            position1++;
-                        }
-                        if (position1 == meetings.size()) {
-                            meetings.add(modules.get(modules.size()-1));
-                        }*/
-                    }
-
-                    Log.i(TAG, "isNotConnected: MEETINGS-SIZE: " + meetings.size());
-                   // meetings.add(modules.get(modulePosition));
-                   // if (modules.size() > 0) {
-                   //     meetings.add(modules.get(modules.size()-1));
-                   // }
 
                     itemToSave.put(getString(R.string.VALUE), meetings);
                     SavedData.set(Objects.requireNonNull(intentDataMap.get("subject_key")).toString(), itemToSave, false);
