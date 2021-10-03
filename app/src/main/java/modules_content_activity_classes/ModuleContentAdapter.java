@@ -69,6 +69,10 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         final TextView txt = _view.findViewById(R.id.txtview_content);
 
         if (isOnSearchMode) {
+            if (position == searchedContents.size()) {
+                card.setVisibility(View.INVISIBLE);
+                return;
+            }
             txt.setText(searchedContents.get(position));
             return; // we will return cuz we dont want to initialize the listeners if we are on search mode.
         }
