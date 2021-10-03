@@ -3,6 +3,7 @@ package home_activity_classes;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,7 +15,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -49,17 +52,20 @@ public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.Vi
         mListener = listener;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @NonNull
     @Override
     public SubjectLstAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View _view = LayoutInflater.from(parent.getContext()).inflate(R.layout.subjectlst_fragment, parent, false);
+        _view.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return new ViewHolder(_view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
         View _view = holder.itemView;
-        final RoundedLayout card = _view.findViewById(R.id.card_root);
+        final CardView card = _view.findViewById(R.id.card_root);
+        final RoundedLayout border = _view.findViewById(R.id.border);
         final FrameLayout filterLayout = _view.findViewById(R.id.filter_layout);
         final ImageView imgThumbnail = _view.findViewById(R.id.img);
         final TextView subjectName = _view.findViewById(R.id.subject_name);
@@ -79,7 +85,7 @@ public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.Vi
             }
             isOnDeleteMode[0] = false;
             deleteBtn.setVisibility(View.GONE);
-            card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
+            border.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
             subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.colorAccent, null)));
             filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilter, null)));
         });
@@ -89,7 +95,7 @@ public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.Vi
                 isOnDeleteMode[0] = true;
 
                 deleteBtn.setVisibility(View.VISIBLE);
-                card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.red, null));
+                border.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.red, null));
                 subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.red, null)));
                 filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilterRed, null)));
                 return true;
@@ -97,7 +103,7 @@ public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.Vi
 
             isOnDeleteMode[0] = false;
             deleteBtn.setVisibility(View.GONE);
-            card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
+            border.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
             subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.colorAccent, null)));
             filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilter, null)));
             return true;
@@ -106,7 +112,7 @@ public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.Vi
         deleteBtn.setOnClickListener(view -> {
             isOnDeleteMode[0] = false;
             deleteBtn.setVisibility(View.GONE);
-            card.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
+            border.setBorderColor(ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null));
             subjectNameRoot.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.colorAccent, null)));
             filterLayout.setBackground(new ColorDrawable(ResourcesCompat.getColor(context.getResources(), R.color.imgFilter, null)));
 

@@ -59,7 +59,6 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         return new ViewHolder(_view);
     }
 
-    private boolean onDeleteMode = false;
     @SuppressLint("NotifyDataSetChanged")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
@@ -67,6 +66,8 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         final RoundedLayout card = _view.findViewById(R.id.cardview);
         final ImageButton deleteBtn = _view.findViewById(R.id.delete_ic);
         final TextView txt = _view.findViewById(R.id.txtview_content);
+
+        final boolean[] onDeleteMode = {false};
 
         if (isOnSearchMode) {
             if (position == searchedContents.size()) {
@@ -87,8 +88,8 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         txt.setText(data.get(position));
         // card on click
         card.setOnClickListener(view -> {
-            if (onDeleteMode) {
-                onDeleteMode = false;
+            if (onDeleteMode[0]) {
+                onDeleteMode[0] = false;
                 _initNormalView(card, deleteBtn);
             }
             mListener.onClick();
@@ -96,19 +97,19 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
 
         // card on long click
         card.setOnLongClickListener(view -> {
-            if (!onDeleteMode) {
-                onDeleteMode = true;
+            if (! onDeleteMode[0]) {
+                onDeleteMode[0] = true;
                 _initDeleteView(card, deleteBtn);
                 return true;
             }
-            onDeleteMode = false;
+            onDeleteMode[0] = false;
             _initNormalView(card, deleteBtn);
             return true;
         });
         // delete btn on click
         deleteBtn.setOnClickListener(view -> {
-            if (onDeleteMode) {
-                onDeleteMode = false;
+            if (onDeleteMode[0]) {
+                onDeleteMode[0] = false;
                 _initNormalView(card, deleteBtn);
             }
             mListener.onDeleteButtonClick(position);
@@ -116,12 +117,17 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
     }
 
     private void _initNormalView(View card, @NonNull View deleteBtn) {
-        ((RoundedLayout)card).setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
+        final int bgColor = ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null);
+        final int borderColor = ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null);
+        ((RoundedLayout)card).setBgroundColor(bgColor);
+        ((RoundedLayout)card).setBorderColor(borderColor);
         deleteBtn.setVisibility(View.GONE);
     }
 
     private void _initDeleteView(View card, @NonNull View deleteBtn) {
-        ((RoundedLayout)card).setBgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.delete_bg_clor, null));
+        final int color = ResourcesCompat.getColor(context.getResources(), R.color.delete_bg_clor, null);
+        ((RoundedLayout)card).setBgroundColor(color);
+        ((RoundedLayout)card).setBorderColor(color);
         deleteBtn.setVisibility(View.VISIBLE);
     }
 
