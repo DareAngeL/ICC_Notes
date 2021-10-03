@@ -2,24 +2,25 @@
 <layouts.RoundedLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scene_main_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#00FFFFFF"
+    android:padding="10dp"
     app:bgColor="@color/toolbarColor"
     app:topLeftCornerRadius="15dp"
     app:topRightCornerRadius="15dp"
-    tools:ignore="MissingConstraints"
-    android:id="@+id/scene_main_root"
-    android:padding="10dp"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    tools:ignore="MissingConstraints">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <LinearLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
             <ImageButton
                 android:id="@+id/check_btn"
@@ -39,17 +40,17 @@
                 android:hint="@string/write_a_content_here"
                 android:text=""
                 android:textColor="@color/white"
+                android:textColorHighlight="#BFFFE603"
                 android:textColorHint="@color/hintColorWhite"
                 android:textCursorDrawable="@null"
-                android:textColorHighlight="#BFFFE603"
                 tools:ignore="Autofill,TextContrastCheck,TextFields,TouchTargetSizeCheck" />
 
         </LinearLayout>
 
         <LinearLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
             <ImageButton
                 android:id="@+id/bold"
