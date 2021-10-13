@@ -25,6 +25,7 @@ import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -88,8 +89,8 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         searchingThread.quit();
+        super.onDestroy();
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -221,6 +222,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         final SpannableStringBuilder spannedContent = new SpannableStringBuilder();
 
         View view = LayoutInflater.from(this).inflate(R.layout.add_content_view, scenesRoot);
+        final LinearLayout stylesRoot = view.findViewById(R.id.styles_root);
         final ImageButton checkBtn = view.findViewById(R.id.check_btn);
         final EditText editTextContent = view.findViewById(R.id.edittxt_content);
         final ImageButton boldBtn = view.findViewById(R.id.bold);
@@ -279,6 +281,9 @@ public class ModuleContentActivity extends AppCompatActivity {
                 if (isKeyboardShown)
                     App.hideKeyboard(this, view1);
 
+                editTextContent.getLayoutParams().height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                editTextContent.requestLayout();
+
                 final HashMap<String, Object> mapContents = new HashMap<>();
                 final String indicesJson = new Gson().toJson(spannedIndices.get());
 
@@ -297,6 +302,29 @@ public class ModuleContentActivity extends AppCompatActivity {
             }
             isEditTextContentOnError = true;
             App.animateErrorEffect(ModuleContentActivity.this, editTextContent);
+        });
+        // stylesRoot listener
+        stylesRoot.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            private boolean isFirstInit = true;
+            private int stylesRootHeight;
+            @Override
+            public void onGlobalLayout() {
+                // store the original height of the root of the styles.
+                if (isFirstInit) {
+                    isFirstInit = false;
+                    stylesRootHeight = stylesRoot.getMeasuredHeight();
+                    return;
+                }
+                // checks if the height of the root layout of styles button are still the same.
+                // if its not, set a fixed height for the text content so the styles button wont dissapear
+                // on the screen if the text input are too long.
+                if (stylesRootHeight != stylesRoot.getMeasuredHeight()) {
+                    final int lostHeight = Math.abs(stylesRootHeight - stylesRoot.getMeasuredHeight());
+
+                    editTextContent.getLayoutParams().height = editTextContent.getMeasuredHeight() - lostHeight;
+                    editTextContent.requestLayout();
+                }
+            }
         });
     }
     /*
@@ -592,14 +620,10 @@ public class ModuleContentActivity extends AppCompatActivity {
             return;
         }
 
-        final List<SpannableStringBuilder> contentList = _initSpannables();
-
-        String jsonContents = new Gson().toJson(contentList);
         final Message msgToHandler = Message.obtain();
         {
             HashMap<String, String> msgMap = new HashMap<>();
             msgMap.put("search_key", text);
-            msgMap.put("contents", jsonContents);
             msgToHandler.obj = new Gson().toJson(msgMap);
         }
         searchingThread.getHandler().sendMessage(msgToHandler);

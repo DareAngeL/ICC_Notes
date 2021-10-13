@@ -50,7 +50,6 @@ public class SearchContentThread extends HandlerThread {
                 final String textToSearch = msgMap.get("search_key");
                 final List<SpannableStringBuilder> contents = ModuleContentActivity._initSpannables();
 
-                assert contents != null;
                 List<SpannableStringBuilder> avContent = new ArrayList<>();
                 for (SpannableStringBuilder content : contents) {
                     assert textToSearch != null;

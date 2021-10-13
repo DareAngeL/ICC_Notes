@@ -36,6 +36,7 @@
                 android:id="@+id/edittxt_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="top"
                 android:backgroundTint="@color/white"
                 android:hint="@string/write_a_content_here"
                 android:text=""
@@ -48,6 +49,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/styles_root"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
