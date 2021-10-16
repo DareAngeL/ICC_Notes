@@ -9,6 +9,7 @@ import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialog;
 
@@ -77,10 +78,12 @@ public class Subject extends HashMap<String, Object> {
     public static class FirebaseImageStorage extends AppCompatDialog {
         private final Context mContext;
 
+        @Nullable
         private TextView mPercentage;
         private final Subject mNewSubject;
 
         private boolean UPLOADING_MODE;
+        private final boolean mIsImageSpan = false;
 
         private FirebaseDB mDatabase;
         private final FirebaseStorage mStorage = FirebaseStorage.getInstance();
@@ -134,11 +137,18 @@ public class Subject extends HashMap<String, Object> {
             // upload progress listener
             mUploadProgressListener = taskSnapshot -> {
                 int progress = (int)((100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount());
+                assert mPercentage != null;
                 mPercentage.setText(String.valueOf(progress).concat("%"));
             };
             // upload success listener
             mUploadSuccesListener = task -> {
                 final String imgUrl = Objects.requireNonNull(task.getResult()).toString();
+
+                if (mIsImageSpan) {
+                    dismiss();
+                    return;
+                }
+
                 mNewSubject.put("Image", imgUrl);
                 // before pushing the data to database, ensure first that the passed database object isnt null to avoid null exception
                 if (mDatabase == null)

@@ -6,6 +6,9 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -15,6 +18,7 @@ import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.ViewCompat;
@@ -35,11 +39,22 @@ import java.util.Map;
 import java.util.Objects;
 
 public class App {
-    private static final String TAG = "APP";
     private static List<Subject> mSubjects;
     @Nullable
     private static String mCurrentDay;
     private static final String mDatabaseReference = "Subjects";
+
+    @Nullable
+    public static Bitmap getBitmapFromUri(@NonNull Context ac, Uri uri) {
+        try {
+            return MediaStore.Images.Media.getBitmap(ac.getContentResolver(), uri);
+        } catch (IOException e) {
+            new AlertDialog.Builder(ac).setTitle("ERROR")
+                    .setMessage("Can't access image, please choose another file manager or select your phone gallery")
+                    .show();
+        }
+        return null;
+    }
 
     public static String getDatabaseReference() {
         return mDatabaseReference;
