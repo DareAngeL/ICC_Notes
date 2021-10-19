@@ -1,8 +1,11 @@
 package modules_content_activity_classes;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.SpannableStringBuilder;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,10 +17,13 @@ import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.tajos.iccnotes.R;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 import layouts.RoundedLayout;
 
@@ -25,8 +31,8 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
     private static boolean isOnSearchMode = false;
 
     @Nullable
-    private List<SpannableStringBuilder> data = new ArrayList<>();
-    private List<SpannableStringBuilder> searchedContents;
+    private final List<HashMap<String, Object>> data;
+    private final SpanHelper spanHelper;
     private final Context context;
 
     public OnCardClickedListener mListener = null;
@@ -39,16 +45,10 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         mListener = listener;
     }
 
-    public ModuleContentAdapter(final Context cn, @Nullable final List<SpannableStringBuilder> data, @Nullable final List<SpannableStringBuilder> searchSpanned) {
-        if (searchSpanned != null) {
-            isOnSearchMode = true;
-            searchedContents = searchSpanned;
-            context = cn;
-            return;
-        }
-
-        isOnSearchMode = false;
+    public ModuleContentAdapter(final Context cn, @Nullable final List<HashMap<String, Object>> data, final SpanHelper spanHelper, final boolean isFromSearch) {
+        isOnSearchMode = isFromSearch;
         context = cn;
+        this.spanHelper = spanHelper;
         this.data = data;
     }
 
@@ -70,11 +70,12 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         final boolean[] onDeleteMode = {false};
 
         if (isOnSearchMode) {
-            if (position == searchedContents.size()) {
+            assert data != null;
+            if (position == data.size()) {
                 card.setVisibility(View.INVISIBLE);
                 return;
             }
-            txt.setText(searchedContents.get(position));
+            txt.setText(_spanText(data.get(position)));
             return; // we will return cuz we dont want to initialize the listeners if we are on search mode.
         }
 
@@ -85,7 +86,7 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
             return;
         }
 
-        txt.setText(data.get(position));
+        txt.setText(_spanText(data.get(position)));
         // card on click
         card.setOnClickListener(view -> {
             if (onDeleteMode[0]) {
@@ -116,6 +117,22 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
         });
     }
 
+    @NonNull
+    private SpannableStringBuilder _spanText(@NonNull final HashMap<String, Object> spanMap) {
+        final String text = Objects.requireNonNull(spanMap.get("text")).toString();
+        final List<HashMap<String, Object>> spannedIndicesList = new Gson().fromJson(Objects.requireNonNull(spanMap.get("indices")).toString(), new TypeToken<List<HashMap<String, Object>>>() {}.getType());
+        Log.i(TAG, "_spanText: " + spannedIndicesList);
+        SpanHelper.spannedIndices.set(spannedIndicesList);
+
+        SpannableStringBuilder spannedContent = new SpannableStringBuilder(text);
+
+        // checks if there is an indices of spanned text and if there is, span it. Otherwise, it is plain text, dont span.
+        if (spannedIndicesList != null && spannedIndicesList.size() > 0)
+            spanHelper.resetSpan(spannedContent, isOnSearchMode, spanMap);
+
+        return spannedContent;
+    }
+
     private void _initNormalView(View card, @NonNull View deleteBtn) {
         final int bgColor = ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null);
         final int borderColor = ResourcesCompat.getColor(context.getResources(), R.color.toolbarColor, null);
@@ -133,11 +150,8 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
 
     @Override
     public int getItemCount() {
-        if (isOnSearchMode)
-            return searchedContents.size() + 1; // we add one so we can have margin effect below the recyclerview
-
         assert data != null;
-        return data.size() + 1; // we add one so we can have margin effect below the recyclerview
+        return data.size() + 1; // we add one so we can have margin effect at the bottom of recyclerview
     }
 
     @Override

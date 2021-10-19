@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 import iccnote.App;
 import iccnote.FirebaseDB;
@@ -57,19 +56,13 @@ import iccnote.Subject;
 import layouts.RoundedLayout;
 import modules_content_activity_classes.ModuleContentAdapter;
 import modules_content_activity_classes.PaintWindow;
-import modules_content_activity_classes.SearchContentThread;
+import modules_content_activity_classes.SearchContent;
+import modules_content_activity_classes.SpanHelper;
 import modules_content_activity_classes.TajosImageSpan;
 
 public class ModuleContentActivity extends AppCompatActivity {
 
     private static final String TAG = "ModuleContentActivity";
-
-    public static final String BOLD = "BOLD";
-    public static final String ITALIC = "ITALIC";
-    public static final String UNDERLINE = "UNDERLINE";
-    public static final String IMAGE = "IMAGE";
-    public static final String FOREGROUND = "FOREGROUND";
-    public static final String BACKGROUND = "BACKGROUND";
 
     private int contentFragmentWidth;
 
@@ -81,14 +74,13 @@ public class ModuleContentActivity extends AppCompatActivity {
     private final static List<Module> meetings = new ArrayList<>();
     private static List<HashMap<String, Object>> contents = new ArrayList<>();
     private List<Module> modules = new ArrayList<>();
-    private List<SpannableStringBuilder> spannables;
 
     private ModuleContentAdapter adapter;
     private ModuleContentAdapter.OnCardClickedListener cardListener;
 
-    private final SearchContentThread searchingThread = new SearchContentThread(this);
-
+    private SearchContent searchingThread;
     private FirebaseDB database;
+    private SpanHelper spanHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,6 +92,10 @@ public class ModuleContentActivity extends AppCompatActivity {
         final float contentPadding = App.convertDptoPx(8f);
         final int screenWidth = App.getScreenWidth(this);
         contentFragmentWidth = screenWidth - (int)contentPadding - (int)App.convertDptoPx(28f);
+        spanHelper = new SpanHelper(this, contentFragmentWidth);
+        // content fragment width will be passed to searchingThread bcuz we will parse
+        // the image span also there, so we need it there.
+        searchingThread = new SearchContent(this);
 
         _initBundles();
         _initLogic();
@@ -116,8 +112,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         _initContents();
         _initSearchContentView();
 
-        spannables = _initSpannables();
-        adapter = new ModuleContentAdapter(this, spannables, null);
+        adapter = new ModuleContentAdapter(this, contents,  spanHelper, false);
         adapter.setOnCardClickListener(cardListener);
         recyclerView.setItemViewCacheSize(4);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
@@ -160,7 +155,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         //when search is completed we need to set new adapter and notify the recyclerview of the changes.
         searchingThread.setOnSearchListener((availableContent) -> {
             // on search completed
-            adapter = new ModuleContentAdapter(this, null, availableContent);
+            adapter = new ModuleContentAdapter(this, availableContent, spanHelper, true);
             adapter.setOnCardClickListener(cardListener);
             recyclerView.setAdapter(adapter);
             Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
@@ -192,8 +187,7 @@ public class ModuleContentActivity extends AppCompatActivity {
             @Override
             public void onDeleteButtonClick(int position) {
                 contents.remove(position);
-                spannables = _initSpannables();
-                adapter = new ModuleContentAdapter(ModuleContentActivity.this, spannables, null);
+                adapter = new ModuleContentAdapter(ModuleContentActivity.this, contents, spanHelper, false);
                 adapter.setOnCardClickListener(cardListener);
                 recyclerView.setAdapter(adapter);
                 Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
@@ -257,34 +251,23 @@ public class ModuleContentActivity extends AppCompatActivity {
 
             isOrigWidth = img.getWidth() <= editTextContentView.getMeasuredWidth();
             if (!isOrigWidth)
-                img = _readjustBitmap(img, editTextContentView.getMeasuredWidth());
+                img = spanHelper.readjustBitmap(img, editTextContentView.getMeasuredWidth());
 
             _initAddContentView(editTextContentView.getText().toString() + " ", img, imgUri[0].toString(), isOrigWidth);
         }
     });
 
-    private Bitmap _readjustBitmap(@NonNull final Bitmap bmp, final int newWidth) {
-        final int bmpWidth = bmp.getWidth();
-        final int bmpHeight = bmp.getHeight();
-
-        // calculation to know the new height of the bitmap
-        final float rate = newWidth / (float) bmpWidth;
-        final int newHeight = (int)(bmpHeight * rate);
-
-        return Bitmap.createScaledBitmap(bmp, newWidth, newHeight, true);
-    }
-
     /*
     * This will initialize the content for Add content view;
     */
     private boolean isEditTextContentOnError = false; // boolean for edittext content if its on error or not.
-    public static final AtomicReference<List<HashMap<String, Object>>> spannedIndices = new AtomicReference<>();
     @SuppressLint({"NotifyDataSetChanged", "InflateParams"})
     private void _initAddContentView(@Nullable final String str, @Nullable final Bitmap img, @Nullable final String source, boolean isOrigWidth) {
         _resetAdapter(); // always reset the adapter of recyclerview.
         scenesRoot.removeAllViews();
 
         final SpannableStringBuilder spannedContent = new SpannableStringBuilder(str); // spanned content for the edittext of add content view
+        @SuppressWarnings("rawtypes") final List[] indices = new List[]{null};
 
         final Intent pickImage = new Intent(Intent.ACTION_GET_CONTENT);
         pickImage.setType("image/*");
@@ -309,7 +292,9 @@ public class ModuleContentActivity extends AppCompatActivity {
             assert img != null;
             spannedContent.setSpan(new TajosImageSpan(this, img, source), str.length() - 1, str.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
             editTextContent.setText(spannedContent);
-            spannedIndices.set(_getSpannedIndices(spannedContent, isOrigWidth));
+            SpanHelper.spannedIndices.set(spanHelper.getSpannedIndices(spannedContent, isOrigWidth));
+            indices[0] = SpanHelper.spannedIndices.get();
+            Log.i(TAG, "_initAddContentView: SPANNEDINDICES: " + indices[0]);
         }
 
         /* * * * * * * * * * * * * * * * *
@@ -331,11 +316,21 @@ public class ModuleContentActivity extends AppCompatActivity {
             public void afterTextChanged(Editable editable) {}
         });
         // bold btn listener
-        boldBtn.setOnClickListener(view13 -> _setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.BOLD), -1, BOLD));
+        boldBtn.setOnClickListener(view13 -> {
+            spanHelper.setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.BOLD), -1, SpanHelper.BOLD);
+            indices[0] = SpanHelper.spannedIndices.get();
+            Log.i(TAG, "_initAddContentView: BOLDBTN: " + indices[0]);
+        });
         // italic btn listener
-        italicBtn.setOnClickListener(view14 -> _setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.ITALIC), -1, ITALIC));
+        italicBtn.setOnClickListener(view14 -> {
+            spanHelper.setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.ITALIC), - 1, SpanHelper.ITALIC);
+            indices[0] = SpanHelper.spannedIndices.get();
+        });
         // underline btn listener
-        underlineBtn.setOnClickListener(view15 -> _setSpan(editTextContent, spannedContent, new UnderlineSpan(), -1, UNDERLINE));
+        underlineBtn.setOnClickListener(view15 -> {
+            spanHelper.setSpan(editTextContent, spannedContent, new UnderlineSpan(), - 1, SpanHelper.UNDERLINE);
+            indices[0] = SpanHelper.spannedIndices.get();
+        });
         // add image button click listener
         addImageBtn.setOnClickListener(view16 -> launcher.launch(pickImage));
 
@@ -349,11 +344,13 @@ public class ModuleContentActivity extends AppCompatActivity {
                 // text color type highlight
                 if (data.containsKey(PaintWindow.TYPE) && data.containsKey(PaintWindow.COLOR)) {
                     if (Objects.requireNonNull(data.get(PaintWindow.TYPE)) == PaintWindow.TEXT_COLOR_TYPE) {
-                        _setSpan(editTextContent, spannedContent, new ForegroundColorSpan(Objects.requireNonNull(data.get(PaintWindow.COLOR))), Objects.requireNonNull(data.get(PaintWindow.COLOR)), FOREGROUND);
+                        spanHelper.setSpan(editTextContent, spannedContent, new ForegroundColorSpan(Objects.requireNonNull(data.get(PaintWindow.COLOR))), Objects.requireNonNull(data.get(PaintWindow.COLOR)), SpanHelper.FOREGROUND);
+                        indices[0] = SpanHelper.spannedIndices.get();
                         return;
                     }
                     //background type highlight
-                    _setSpan(editTextContent, spannedContent, new BackgroundColorSpan(Objects.requireNonNull(data.get(PaintWindow.COLOR))), Objects.requireNonNull(data.get(PaintWindow.COLOR)), BACKGROUND);
+                    spanHelper.setSpan(editTextContent, spannedContent, new BackgroundColorSpan(Objects.requireNonNull(data.get(PaintWindow.COLOR))), Objects.requireNonNull(data.get(PaintWindow.COLOR)), SpanHelper.BACKGROUND);
+                    indices[0] = SpanHelper.spannedIndices.get();
                 }
             });
         });
@@ -368,14 +365,14 @@ public class ModuleContentActivity extends AppCompatActivity {
                 editTextContent.requestLayout();
 
                 final HashMap<String, Object> mapContents = new HashMap<>();
-                final String indicesJson = new Gson().toJson(spannedIndices.get());
+                final String indicesJson = new Gson().toJson(indices[0]);
+                Log.i(TAG, "_initAddContentView: " + indicesJson);
 
                 mapContents.put("text", editTextContent.getText().toString());
                 mapContents.put("indices", indicesJson);
                 contents.add(mapContents);
 
-                spannables = _initSpannables();
-                adapter = new ModuleContentAdapter(this, spannables, null);
+                adapter = new ModuleContentAdapter(this, contents, spanHelper, false);
                 adapter.setOnCardClickListener(cardListener);
                 recyclerView.setAdapter(adapter);
                 Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
@@ -436,308 +433,6 @@ public class ModuleContentActivity extends AppCompatActivity {
         });
     }
 
-    /*
-    * this will initialize the spannables for each contents before passing it to @ModuleContentAdapter.
-    * so we can display the spanned contents on recyclerview.
-    * @used in initLogic method => this will be called every time this@ModuleContentActivity activity will be opened.
-    * @used in checkBtn View listener inside _initAddContentView method.
-    */
-    @NonNull
-    private List<SpannableStringBuilder> _initSpannables() {
-        List<SpannableStringBuilder> spannedContents = new ArrayList<>(); // list of spanned content for recyclerview
-
-        for (HashMap<String, Object> spanMap : contents) {
-            final String text = Objects.requireNonNull(spanMap.get("text")).toString();
-            final List<HashMap<String, Object>> spannedIndicesList = new Gson().fromJson(Objects.requireNonNull(spanMap.get("indices")).toString(), new TypeToken<List<HashMap<String, Object>>>() {}.getType());
-            spannedIndices.set(spannedIndicesList);
-
-            SpannableStringBuilder spannedContent = new SpannableStringBuilder(text);
-
-            // checks if there is an indices of spanned text and if there is, span it. Otherwise, it is plain text, dont span.
-            if (spannedIndicesList != null && spannedIndicesList.size() > 0)
-                _resetSpan(spannedContent);
-
-            spannedContents.add(spannedContent);
-        }
-
-        return spannedContents;
-    }
-    /*
-     * this will get the spanned indices from editTextContent of AddContentView and store it to spannedIndices variable
-     * @everytime the BOLD, ITALIC and UNDERLINE button is clicked, this will be called so we can update the indices list
-     */
-    @NonNull
-    private List<HashMap<String, Object>> _getSpannedIndices(@NonNull final SpannableStringBuilder span, boolean isOrigWidth) {
-        final List<HashMap<String, Object>> spannedIndices = new ArrayList<>();
-        final StyleSpan[] styleSpans = span.getSpans(0, span.length(), StyleSpan.class);
-        final UnderlineSpan[] underlineSpans = span.getSpans(0, span.length(), UnderlineSpan.class);
-        final TajosImageSpan[] imageSpans = span.getSpans(0, span.length(), TajosImageSpan.class);
-        final ForegroundColorSpan[] foregroundColorSpans = span.getSpans(0, span.length(), ForegroundColorSpan.class);
-        final BackgroundColorSpan[] backgroundColorSpans = span.getSpans(0, span.length(), BackgroundColorSpan.class);
-
-        for (StyleSpan styleSpan : styleSpans) {
-            if (styleSpan.getStyle() == Typeface.BOLD) {
-                final HashMap<String, Object> map = new HashMap<>();
-                final int[] indices = { span.getSpanStart(styleSpan), span.getSpanEnd(styleSpan) };
-                if (indices[0] == 0 && indices[1] == 0)
-                    continue;
-
-                final String text = App.cutString(span.toString(), indices[0], indices[1]);
-                final String indicesJson = new Gson().toJson(indices);
-                map.put("type_span", BOLD);
-                map.put("text", text);
-                map.put("bold_i", indicesJson);
-                spannedIndices.add(map);
-                continue;
-            }
-            // ITALIC span style
-            final HashMap<String, Object> map = new HashMap<>();
-            int[] indices = { span.getSpanStart(styleSpan), span.getSpanEnd(styleSpan) };
-            if (indices[0] == 0 && indices[1] == 0)
-                continue;
-
-            final String text = App.cutString(span.toString(), indices[0], indices[1]);
-            final String indicesJson = new Gson().toJson(indices);
-            map.put("type_span", ITALIC);
-            map.put("text", text);
-            map.put("italic_i", indicesJson);
-            spannedIndices.add(map);
-        }
-        // UNDERLINE span style
-        for (UnderlineSpan underlineSpan : underlineSpans) {
-            final HashMap<String, Object> map = new HashMap<>();
-            int[] indices = { span.getSpanStart(underlineSpan), span.getSpanEnd(underlineSpan) };
-            if (indices[0] == 0 && indices[1] == 0)
-                continue;
-
-            final String text = App.cutString(span.toString(), indices[0], indices[1]);
-            final String indicesJson = new Gson().toJson(indices);
-            map.put("type_span", UNDERLINE);
-            map.put("text", text);
-            map.put("underline_i", indicesJson);
-            spannedIndices.add(map);
-        }
-        // IMAGE SPAN
-        for (TajosImageSpan imageSpan : imageSpans) {
-            final HashMap<String, Object> map = new HashMap<>();
-            int[] indices = {span.getSpanStart(imageSpan), span.getSpanEnd(imageSpan)};
-            if (indices[0] == 0 && indices[1] == 0)
-                continue;
-
-            final String imgSource = imageSpan.getImageSource();
-            final String indicesJson = new Gson().toJson(indices);
-            map.put("type_span", IMAGE);
-            map.put("image", imgSource);
-            map.put("is_orig_w", isOrigWidth);
-            map.put("image_i", indicesJson);
-            spannedIndices.add(map);
-        }
-        // FOREGROUND span
-        for (ForegroundColorSpan foregroundColorSpan : foregroundColorSpans) {
-            final HashMap<String, Object> map = new HashMap<>();
-            int[] indices = {span.getSpanStart(foregroundColorSpan), span.getSpanEnd(foregroundColorSpan)};
-            if (indices[0] == 0 && indices[1] == 0)
-                continue;
-
-            final int foreGroundColor = foregroundColorSpan.getForegroundColor();
-            final String text = App.cutString(span.toString(), indices[0], indices[1]);
-            final String indicesJson = new Gson().toJson(indices);
-            final String colorJson = new Gson().toJson(foreGroundColor);
-            map.put("type_span", FOREGROUND);
-            map.put("text", text);
-            map.put("color", colorJson);
-            map.put("foreground_i", indicesJson);
-            spannedIndices.add(map);
-        }
-        // BACKGROUND span
-        for (BackgroundColorSpan backgroundColorSpan : backgroundColorSpans) {
-            final HashMap<String, Object> map = new HashMap<>();
-            int[] indices = {span.getSpanStart(backgroundColorSpan), span.getSpanEnd(backgroundColorSpan)};
-            if (indices[0] == 0 && indices[1] == 0)
-                continue;
-
-            final int bgColor = backgroundColorSpan.getBackgroundColor();
-            final String text = App.cutString(span.toString(), indices[0], indices[1]);
-            final String indicesJson = new Gson().toJson(indices);
-            final String colorJson = new Gson().toJson(bgColor);
-            map.put("type_span", BACKGROUND);
-            map.put("text", text);
-            map.put("color", colorJson);
-            map.put("background_i", indicesJson);
-            spannedIndices.add(map);
-        }
-
-        Log.i(TAG, "getSpannedIndices: " + spannedIndices.toString());
-        return spannedIndices;
-    }
-    /*
-     * this will set the span of editTextContent from AddContentView
-     * @when BOLD is clicked, this will be called
-     * @when ITALIC is clicked, this will be called
-     * @when UNDERLINE is clicked, this will be called
-     */
-    private void _setSpan(@NonNull EditText contentView, SpannableStringBuilder spannedContent, Object spanType, int COLOR, String SPAN_TYPE) {
-        if (contentView.getSelectionStart() != contentView.getSelectionEnd()) {
-            final int start = contentView.getSelectionStart();
-            final int end = contentView.getSelectionEnd();
-            final CharSequence selectedText = App.cutString(contentView.getText(), start, end);
-
-            if (spannedContent.length() < contentView.length()) {
-                final String spanned = spannedContent.toString();
-                final String newContent = App.cutString(contentView.getText().toString(), 0, spannedContent.length());
-                if (spanned.equals(newContent))
-                    spannedContent.append(App.cutString(contentView.getText().toString(), spannedContent.length(), contentView.length()));
-                else {
-                    spannedContent.clear();
-                    spannedContent.append(contentView.getText());
-                    _resetSpan(spannedContent);
-                }
-            }
-            // if spanned content is bigger than the new content text it means, the text was changed decremently in text size.
-            if (spannedContent.length() > contentView.length()) {
-                spannedContent.clear();
-                spannedContent.append(contentView.getText());
-                _resetSpan(spannedContent);
-            }
-
-            // this will remove a span if there's an existing span already.
-            if (spannedContent.length()>0) {
-                boolean isExist = false;
-                if (spannedIndices.get() != null) {
-                    for (HashMap<String, Object> indexMap : spannedIndices.get()) {
-                        if (!indexMap.containsKey("text"))
-                            continue;
-
-                        if (selectedText.equals(Objects.requireNonNull(indexMap.get("text")).toString())) {
-                            if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(SPAN_TYPE)) {
-                                if (SPAN_TYPE.equals(FOREGROUND) || SPAN_TYPE.equals(BACKGROUND)) {
-                                    final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
-                                    if (COLOR == color) {
-                                        _removeSpan(spannedContent, start, end);
-                                        isExist = true;
-                                    }
-                                    continue;
-                                }
-                                _removeSpan(spannedContent, start, end);
-                                isExist = true;
-                            }
-                            if (isExist)
-                                break;
-                        }
-                    }
-                }
-                if (!isExist)
-                    spannedContent.setSpan(spanType, start, end, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-            }
-
-            contentView.setText(spannedContent);
-            contentView.setSelection(start, end);
-            spannedIndices.set(_getSpannedIndices(spannedContent, false)); // updates new spanned indices
-        }
-    }
-
-    private void _removeSpan(@NonNull final SpannableStringBuilder strBldr, final int start, final int end) {
-        final StyleSpan[] styles = strBldr.getSpans(start, end, StyleSpan.class);
-        final UnderlineSpan[] underlineSpans = strBldr.getSpans(start, end, UnderlineSpan.class);
-        final ForegroundColorSpan[] foregroundColorSpans = strBldr.getSpans(start, end, ForegroundColorSpan.class);
-        final BackgroundColorSpan[] backgroundColorSpans = strBldr.getSpans(start, end, BackgroundColorSpan.class);
-
-        for (StyleSpan styleSpan : styles) {
-            if (styleSpan.getStyle() == Typeface.BOLD) {
-                strBldr.removeSpan(styleSpan);
-                continue;
-            }
-            strBldr.removeSpan(styleSpan);
-        }
-
-        for (UnderlineSpan underlineSpan : underlineSpans) {
-            strBldr.removeSpan(underlineSpan);
-        }
-
-        for (ForegroundColorSpan foregroundColorSpan : foregroundColorSpans) {
-            strBldr.removeSpan(foregroundColorSpan);
-        }
-
-        for (BackgroundColorSpan backgroundColorSpan : backgroundColorSpans) {
-            strBldr.removeSpan(backgroundColorSpan);
-        }
-    }
-
-    /*
-    * this will reset the span of contents, cuz it was changed drastically. It will try to find the text
-    * if it cant find the text then it will remove the indices that was stored for that particular text
-    * and set a new list of indices.
-    */
-    private void _resetSpan(final SpannableStringBuilder spannedContent) {
-        final List<HashMap<String, Object>> newSpannedList = new ArrayList<>();
-        final String TYPE = "type_span";
-
-        for (HashMap<String, Object> indexMap : spannedIndices.get()) {
-            if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(BOLD)) {
-                _span("bold_i", new StyleSpan(Typeface.BOLD), indexMap, spannedContent, newSpannedList);
-                continue;
-            }
-
-            if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(ITALIC)) {
-                _span("italic_i", new StyleSpan(Typeface.ITALIC), indexMap, spannedContent, newSpannedList);
-                continue;
-            }
-
-            if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(UNDERLINE)) {
-                _span("underline_i", new UnderlineSpan(), indexMap, spannedContent, newSpannedList);
-                continue;
-            }
-
-            if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(FOREGROUND)) {
-                final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
-                _span("foreground_i", new ForegroundColorSpan(color), indexMap, spannedContent, newSpannedList);
-                continue;
-            }
-
-            if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(BACKGROUND)) {
-                final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
-                _span("background_i", new BackgroundColorSpan(color), indexMap, spannedContent, newSpannedList);
-            }
-
-            if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(IMAGE)) {
-                final String imgSrc = Objects.requireNonNull(indexMap.get("image")).toString();
-                final Uri imgUri = Uri.parse(imgSrc);
-                @SuppressWarnings("ConstantConditions")
-                final boolean isOrigWidth = (boolean)indexMap.get("is_orig_w");
-                Bitmap img;
-                img = App.getBitmapFromUri(this, imgUri);
-                if (!isOrigWidth) {
-                    assert img != null;
-                    img = _readjustBitmap(img, contentFragmentWidth);
-                }
-                assert img != null;
-                _span("image_i", new TajosImageSpan(this, img, imgUri.toString()), indexMap, spannedContent, newSpannedList);
-            }
-        }
-        spannedIndices.set(newSpannedList);
-        newSpannedList.clear();
-    }
-
-    private void _span(final String key, final Object spanType, @NonNull final HashMap<String, Object> indexMap, @NonNull final SpannableStringBuilder spannedContent, final List<HashMap<String, Object>> newSpannedList) {
-        final int[] indices = new Gson().fromJson(Objects.requireNonNull(indexMap.get(key)).toString(), new TypeToken<int[]>() {}.getType());
-
-        if (indexMap.containsKey("text")) {
-            final int newStartIndex = spannedContent.toString().contains(Objects.requireNonNull(indexMap.get("text")).toString()) ?
-                    spannedContent.toString().indexOf(Objects.requireNonNull(indexMap.get("text")).toString()) : - 1;
-            final int newLastIndex = newStartIndex != - 1 ? newStartIndex + (indices[1] - indices[0]) : - 1;
-            // it is negative means , it wasnt able to found the text.
-            if (newStartIndex == - 1)
-                return;
-
-            spannedContent.setSpan(spanType, newStartIndex, newLastIndex, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-            newSpannedList.add(indexMap);
-            return;
-        }
-
-        spannedContent.setSpan(spanType, indices[0], indices[1], Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-        newSpannedList.add(indexMap);
-    }
-
     @SuppressLint("NotifyDataSetChanged")
     private void _searchContent(@NonNull final String text) {
         if (text.isEmpty()) {
@@ -758,8 +453,7 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     @SuppressLint("NotifyDataSetChanged")
     private void _resetAdapter() {
-        spannables = _initSpannables();
-        adapter = new ModuleContentAdapter(this, spannables, null);
+        adapter = new ModuleContentAdapter(this, contents, spanHelper, false);
         adapter.setOnCardClickListener(cardListener);
         recyclerView.setAdapter(adapter);
         Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
