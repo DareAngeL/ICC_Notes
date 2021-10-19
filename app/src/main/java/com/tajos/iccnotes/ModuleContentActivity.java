@@ -64,8 +64,6 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     private static final String TAG = "ModuleContentActivity";
 
-    private int contentFragmentWidth;
-
     private RecyclerView recyclerView;
     private FrameLayout scenesRoot;
     private LinearLayout root;
@@ -91,7 +89,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         // calculate the content fragment width for the image span.
         final float contentPadding = App.convertDptoPx(8f);
         final int screenWidth = App.getScreenWidth(this);
-        contentFragmentWidth = screenWidth - (int)contentPadding - (int)App.convertDptoPx(28f);
+        final int contentFragmentWidth = screenWidth - (int) contentPadding - (int) App.convertDptoPx(28f);
         spanHelper = new SpanHelper(this, contentFragmentWidth);
         // content fragment width will be passed to searchingThread bcuz we will parse
         // the image span also there, so we need it there.

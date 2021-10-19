@@ -14,7 +14,6 @@ import android.text.style.UnderlineSpan;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -52,7 +51,7 @@ public class SpanHelper {
      * if it cant find the text then it will remove the indices that was stored for that particular text
      * and set a new list of indices.
      */
-    public void resetSpan(final SpannableStringBuilder spannedContent, final boolean isFromSearch, @Nullable final HashMap<String, Object> content) {
+    public void resetSpan(final SpannableStringBuilder spannedContent, final boolean isFromSearch) {
         final List<HashMap<String, Object>> newSpannedList = new ArrayList<>();
         final String TYPE = "type_span";
 
@@ -67,29 +66,29 @@ public class SpanHelper {
             }
 
             if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(BOLD)) {
-                _span("bold_i", isFromSearch, new StyleSpan(Typeface.BOLD), indexMap, spannedContent, newSpannedList);
+                _span("bold_i", new StyleSpan(Typeface.BOLD), indexMap, spannedContent, newSpannedList);
                 continue;
             }
 
             if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(ITALIC)) {
-                _span("italic_i", isFromSearch, new StyleSpan(Typeface.ITALIC), indexMap, spannedContent, newSpannedList);
+                _span("italic_i", new StyleSpan(Typeface.ITALIC), indexMap, spannedContent, newSpannedList);
                 continue;
             }
 
             if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(UNDERLINE)) {
-                _span("underline_i", isFromSearch, new UnderlineSpan(), indexMap, spannedContent, newSpannedList);
+                _span("underline_i", new UnderlineSpan(), indexMap, spannedContent, newSpannedList);
                 continue;
             }
 
             if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(FOREGROUND)) {
                 final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
-                _span("foreground_i", isFromSearch, new ForegroundColorSpan(color), indexMap, spannedContent, newSpannedList);
+                _span("foreground_i", new ForegroundColorSpan(color), indexMap, spannedContent, newSpannedList);
                 continue;
             }
 
             if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(BACKGROUND)) {
                 final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());
-                _span("background_i", isFromSearch, new BackgroundColorSpan(color), indexMap, spannedContent, newSpannedList);
+                _span("background_i", new BackgroundColorSpan(color), indexMap, spannedContent, newSpannedList);
             }
 
             if (Objects.requireNonNull(indexMap.get(TYPE)).toString().equals(IMAGE)) {
@@ -104,7 +103,7 @@ public class SpanHelper {
                     img = readjustBitmap(img, contentFragmentWidth);
                 }
                 assert img != null;
-                _span("image_i", isFromSearch, new TajosImageSpan(mContext, img, imgUri.toString()), indexMap, spannedContent, newSpannedList);
+                _span("image_i", new TajosImageSpan(mContext, img, imgUri.toString()), indexMap, spannedContent, newSpannedList);
             }
         }
         spannedIndices.set(newSpannedList);
@@ -122,7 +121,7 @@ public class SpanHelper {
         return Bitmap.createScaledBitmap(bmp, newWidth, newHeight, true);
     }
 
-    private void _span(final String key, final boolean isFromSearch, final Object spanType, @NonNull final HashMap<String, Object> indexMap, @NonNull final SpannableStringBuilder spannedContent, final List<HashMap<String, Object>> newSpannedList) {
+    private void _span(final String key, final Object spanType, @NonNull final HashMap<String, Object> indexMap, @NonNull final SpannableStringBuilder spannedContent, final List<HashMap<String, Object>> newSpannedList) {
         final int[] indices = new Gson().fromJson(Objects.requireNonNull(indexMap.get(key)).toString(), new TypeToken<int[]>() {}.getType());
 
         if (indexMap.containsKey("text")) {
@@ -269,14 +268,14 @@ public class SpanHelper {
                 else {
                     spannedContent.clear();
                     spannedContent.append(contentView.getText());
-                    resetSpan(spannedContent, false, null);
+                    resetSpan(spannedContent, false);
                 }
             }
             // if spanned content is bigger than the new content text it means, the text was changed decremently in text size.
             if (spannedContent.length() > contentView.length()) {
                 spannedContent.clear();
                 spannedContent.append(contentView.getText());
-                resetSpan(spannedContent, false, null);
+                resetSpan(spannedContent, false);
             }
 
             // this will remove a span if there's an existing span already.

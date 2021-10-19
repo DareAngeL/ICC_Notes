@@ -128,7 +128,7 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
 
         // checks if there is an indices of spanned text and if there is, span it. Otherwise, it is plain text, dont span.
         if (spannedIndicesList != null && spannedIndicesList.size() > 0)
-            spanHelper.resetSpan(spannedContent, isOnSearchMode, spanMap);
+            spanHelper.resetSpan(spannedContent, isOnSearchMode);
 
         return spannedContent;
     }

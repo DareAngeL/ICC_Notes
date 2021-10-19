@@ -1,14 +1,11 @@
 package modules_content_activity_classes;
 
-import static android.content.ContentValues.TAG;
-
 import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
