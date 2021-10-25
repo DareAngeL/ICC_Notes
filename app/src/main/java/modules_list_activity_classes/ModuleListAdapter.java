@@ -81,10 +81,11 @@ public class ModuleListAdapter extends RecyclerView.Adapter<ModuleListAdapter.Vi
 
             final Intent intent = new Intent(context, ModuleContentActivity.class);
             if (Objects.equals(data.get(position).get(key), "null")) {
+                App.clearContents(); // clear the contents first if this module is empty
+
                 mListener.onClick();
                 final String jsonStringModule = new Gson().toJson(data);
                 intent.putExtra("modules", jsonStringModule);
-                intent.putExtra("contents", "null");
                 intent.putExtra("subject_key", Objects.requireNonNull(intentData.get("key")).toString());
                 intent.putExtra("module_key", key);
                 intent.putExtra("term", Objects.requireNonNull(intentData.get("term")).toString());
@@ -95,9 +96,9 @@ public class ModuleListAdapter extends RecyclerView.Adapter<ModuleListAdapter.Vi
             }
             mListener.onClick();
             final String jsonStringContent = new Gson().toJson(data.get(position).get(key));
+            App.setContents(jsonStringContent);
             final String jsonStringModule = new Gson().toJson(data);
             intent.putExtra("modules", jsonStringModule);
-            intent.putExtra("contents", jsonStringContent);
             intent.putExtra("subject_key", Objects.requireNonNull(intentData.get("key")).toString());
             intent.putExtra("module_key", key);
             intent.putExtra("term", Objects.requireNonNull(intentData.get("term")).toString());

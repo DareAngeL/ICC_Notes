@@ -44,6 +44,18 @@ public class App {
     private static String mCurrentDay;
     private static final String mDatabaseReference = "Subjects";
 
+    private static List<HashMap<String, Object>> mContents = new ArrayList<>();
+
+    public static void setContents(final String jsonContents) {
+        mContents = new Gson().fromJson(jsonContents, new TypeToken<List<HashMap<String, Object>>>() {}.getType());
+    }
+    public static List<HashMap<String, Object>> getContents() {
+        return mContents;
+    }
+    public static void clearContents() {
+        mContents.clear();
+    }
+
     @Nullable
     public static Bitmap getBitmapFromUri(@NonNull Context ac, Uri uri) {
         try {

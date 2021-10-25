@@ -122,7 +122,6 @@ public class ModuleContentActivity extends AppCompatActivity {
     * initialize all the contents of the subject's module.
     */
     private void _initContents() {
-        final String jsonContentFromIntent = getIntent().getStringExtra("contents");
         modules = new Gson().fromJson(getIntent().getStringExtra("modules"), new TypeToken<List<Module>>(){}.getType());
         intentDataMap.put("subject_key", getIntent().getStringExtra("subject_key"));
         intentDataMap.put("module_key", getIntent().getStringExtra("module_key"));
@@ -130,12 +129,7 @@ public class ModuleContentActivity extends AppCompatActivity {
         intentDataMap.put("subject_position", getIntent().getIntExtra("subject_position", -1));
         intentDataMap.put("module_position", getIntent().getIntExtra("module_position", -1));
 
-        if (jsonContentFromIntent.equals("null")) {
-            contents = new ArrayList<>();
-            return;
-        }
-
-        contents = new Gson().fromJson(jsonContentFromIntent, new TypeToken<List<HashMap<String, Object>>>(){}.getType());
+        contents = App.getContents();
     }
 
     private boolean isKeyboardShown;
