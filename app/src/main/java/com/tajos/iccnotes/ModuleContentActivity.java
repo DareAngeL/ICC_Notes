@@ -286,7 +286,6 @@ public class ModuleContentActivity extends AppCompatActivity {
             editTextContent.setText(spannedContent);
             SpanHelper.spannedIndices.set(spanHelper.getSpannedIndices(spannedContent, isOrigWidth));
             indices[0] = SpanHelper.spannedIndices.get();
-            Log.i(TAG, "_initAddContentView: SPANNEDINDICES: " + indices[0]);
         }
 
         /* * * * * * * * * * * * * * * * *
@@ -369,6 +368,8 @@ public class ModuleContentActivity extends AppCompatActivity {
                 recyclerView.setAdapter(adapter);
                 Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
                 editTextContent.setText("");
+                spannedContent.clear();
+                spannedContent.clearSpans();
                 _updateData();
                 return;
             }
