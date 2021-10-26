@@ -99,7 +99,6 @@ public class ModulesListActivity extends AppCompatActivity {
         super.onResume();
         if (isFromModuleContent) {
             final List<Module> updatedModules = App.convertObjectToListModule(App.getSubjects().get(position).get(staticTerm));
-            Log.i("UPDATED MODULES", updatedModules.toString());
             modules = App.sortModules(updatedModules);
             adapter = new ModuleListAdapter(this, modules, intentDataMap);
             adapter.setOnModuleClickedListener(moduleBtnListener);
@@ -190,7 +189,6 @@ public class ModulesListActivity extends AppCompatActivity {
     * or just only store to internal storage if not connected to internet
     */
     private void _checkNetworkAndUpdateDatabase(@Nullable String keyForRemoving) {
-        Log.i("SUBJECT", App.getSubjects().get(position).toString());
         new Thread(new InternetConnection(this, new InternetConnection.OnConnectionResponseListener() {
             @Override
             public void isConnected() {
@@ -214,11 +212,9 @@ public class ModulesListActivity extends AppCompatActivity {
     private void _updateDatabase(@Nullable final String key, final boolean isAddingModules) {
         final String referenceForAdding = App.getDatabaseReference() + "/" + this.key;
         final String referenceForRemoving = App.getDatabaseReference()+"/"+this.key+"/"+staticTerm;
-        Log.i("REFERENCE", referenceForRemoving);
         FirebaseDB database;
         if (isAddingModules) {
             database = new FirebaseDB(referenceForAdding, true, staticTerm);
-            Log.i("MODULES", modules.toString());
             database.updateData(modules.get(moduleCount - 1));
             if (isAddedAllModules)
                 database.updateData(modules.get(moduleCount));
@@ -274,14 +270,12 @@ public class ModulesListActivity extends AppCompatActivity {
             }
 
             itemToDelete.put(getString(R.string.VALUE), meetingsToRemove);
-            Log.i("ITEM TO DEL", itemToDelete.toString());
             SavedData.set(key, itemToDelete, true);
         }
     }
 
     @SuppressLint("NotifyDataSetChanged")
     private void _initialize() {
-        Log.i("CHILD", getIntent().getStringExtra("term"));
         term.setText(getIntent().getStringExtra("term"));
         modulesSubjectName.setText(getIntent().getStringExtra("subject_name"));
         position = getIntent().getIntExtra("position", 0);
@@ -305,13 +299,11 @@ public class ModulesListActivity extends AppCompatActivity {
         else
             moduleCount = modules.size();
 
-        Log.i("MODULES", modules.toString());
         // put the intent data to a hashmap then we pass it to recyclerviews adapter.
         {
             intentDataMap.put("key", getIntent().getStringExtra("key"));
             intentDataMap.put("term", getIntent().getStringExtra("term"));
             intentDataMap.put("position", getIntent().getIntExtra("position", -1));
-            Log.i("INTENT DATA", intentDataMap.toString());
             adapter = new ModuleListAdapter(this, modules, intentDataMap);
         }
         // initialize the recyclerview

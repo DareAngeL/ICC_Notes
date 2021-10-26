@@ -28,7 +28,6 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -61,8 +60,6 @@ import modules_content_activity_classes.SpanHelper;
 import modules_content_activity_classes.TajosImageSpan;
 
 public class ModuleContentActivity extends AppCompatActivity {
-
-    private static final String TAG = "ModuleContentActivity";
 
     private RecyclerView recyclerView;
     private FrameLayout scenesRoot;
@@ -134,7 +131,7 @@ public class ModuleContentActivity extends AppCompatActivity {
 
     private boolean isKeyboardShown;
     private boolean isFirstInit = true;
-    @SuppressLint("NotifyDataSetChanged")
+    @SuppressLint({"NotifyDataSetChanged", "ClickableViewAccessibility"})
     private void _initBundles() {
         root = findViewById(R.id.root);
         recyclerView = findViewById(R.id.module_content_recyclerview);
@@ -159,7 +156,6 @@ public class ModuleContentActivity extends AppCompatActivity {
         * * * * * * * * * * * * */
         root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
             int heightDiff = root.getRootView().getHeight() - root.getHeight();
-            Log.i("HEIGHT_DIFF", String.valueOf(heightDiff));
             if (heightDiff > App.convertDptoPx(200)) { // if more than 200 dp, it's probably a keyboard...
                 isKeyboardShown = true;
                 return;
@@ -171,9 +167,32 @@ public class ModuleContentActivity extends AppCompatActivity {
          * card listener
          * * * * * * * * * * * * */
         cardListener = new ModuleContentAdapter.OnCardClickedListener() {
+            /*
+            * This will listen for a double click and will scroll either up/down
+            * depending of where the double click event is detected
+            */
+            long clickedInterval = 0;
+            long lastClickedMillis = 0;
+            final int DOUBLE_CLICK_THRESHOLD = 500; // 500ms interval threshold to be considered a double click
+            final int scrnCenter = App.getScreenHeight(ModuleContentActivity.this) / 2;
             @Override
-            public void onClick() {
-                // TO-DO
+            public void onClick(int xPosition, int yPosition) {
+                if (lastClickedMillis == 0) {
+                    lastClickedMillis = System.currentTimeMillis();
+                    return;
+                }
+
+                clickedInterval = System.currentTimeMillis() - lastClickedMillis;
+                if (clickedInterval <= DOUBLE_CLICK_THRESHOLD) {
+                    if (yPosition < scrnCenter) { // double click is detected on the top of the screen, so it will scroll to the very top of the list
+                        recyclerView.smoothScrollToPosition(0);
+                    } else { // double click is detected on the bottom of the screen, so it will scroll to the very bottom of the list.
+                        recyclerView.smoothScrollToPosition(adapter.getItemCount()-1);
+                    }
+                    lastClickedMillis = 0;
+                    return;
+                }
+                lastClickedMillis = System.currentTimeMillis();
             }
             @SuppressLint("NotifyDataSetChanged")
             @Override
@@ -310,7 +329,6 @@ public class ModuleContentActivity extends AppCompatActivity {
         boldBtn.setOnClickListener(view13 -> {
             spanHelper.setSpan(editTextContent, spannedContent, new StyleSpan(Typeface.BOLD), -1, SpanHelper.BOLD);
             indices[0] = SpanHelper.spannedIndices.get();
-            Log.i(TAG, "_initAddContentView: BOLDBTN: " + indices[0]);
         });
         // italic btn listener
         italicBtn.setOnClickListener(view14 -> {
@@ -357,7 +375,6 @@ public class ModuleContentActivity extends AppCompatActivity {
 
                 final HashMap<String, Object> mapContents = new HashMap<>();
                 final String indicesJson = new Gson().toJson(indices[0]);
-                Log.i(TAG, "_initAddContentView: " + indicesJson);
 
                 mapContents.put("text", editTextContent.getText().toString());
                 mapContents.put("indices", indicesJson);
@@ -367,6 +384,7 @@ public class ModuleContentActivity extends AppCompatActivity {
                 adapter.setOnCardClickListener(cardListener);
                 recyclerView.setAdapter(adapter);
                 Objects.requireNonNull(recyclerView.getAdapter()).notifyDataSetChanged();
+                recyclerView.scrollToPosition(contents.size()-1);
                 editTextContent.setText("");
                 spannedContent.clear();
                 spannedContent.clearSpans();
@@ -469,7 +487,6 @@ public class ModuleContentActivity extends AppCompatActivity {
                         moduleMap.put(Objects.requireNonNull(intentDataMap.get("module_key")).toString(), contents);
                         final int modulePosition = Integer.parseInt(Objects.requireNonNull(intentDataMap.get("module_position")).toString());
                         modules.get(modulePosition).put(Objects.requireNonNull(intentDataMap.get("module_key")).toString(), contents);
-                        Log.i("MODULES CONTENT", modules.toString());
                         final int subjectPosition = Integer.parseInt(Objects.requireNonNull(intentDataMap.get("subject_position")).toString());
                         App.getSubjects().get(subjectPosition).put(Objects.requireNonNull(intentDataMap.get("term")).toString(), modules);
                         database.updateData(moduleMap);
@@ -545,7 +562,6 @@ public class ModuleContentActivity extends AppCompatActivity {
                                     }
                                 }
                             }
-                            Log.i(TAG, "isConnected: ALLCONTENTS: " + allContents.toString());
                             modules.get(modules.size()-1).put(Module.ALL, allContents);
                         }
                     } else

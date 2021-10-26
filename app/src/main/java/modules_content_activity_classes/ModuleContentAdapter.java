@@ -1,11 +1,8 @@
 package modules_content_activity_classes;
 
-import static android.content.ContentValues.TAG;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.SpannableStringBuilder;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,7 +34,7 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
 
     public OnCardClickedListener mListener = null;
     public interface OnCardClickedListener {
-        void onClick();
+        void onClick(final int xPosition, final int yPosition);
         void onDeleteButtonClick(final int position);
     }
 
@@ -93,7 +90,9 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
                 onDeleteMode[0] = false;
                 _initNormalView(card, deleteBtn);
             }
-            mListener.onClick();
+            final int[] location = new int[2];
+            view.getLocationOnScreen(location);
+            mListener.onClick(location[0], location[1]);
         });
 
         // card on long click
@@ -121,7 +120,6 @@ public class ModuleContentAdapter extends RecyclerView.Adapter<ModuleContentAdap
     private SpannableStringBuilder _spanText(@NonNull final HashMap<String, Object> spanMap) {
         final String text = Objects.requireNonNull(spanMap.get("text")).toString();
         final List<HashMap<String, Object>> spannedIndicesList = new Gson().fromJson(Objects.requireNonNull(spanMap.get("indices")).toString(), new TypeToken<List<HashMap<String, Object>>>() {}.getType());
-        Log.i(TAG, "_spanText: " + spannedIndicesList);
         SpanHelper.spannedIndices.set(spannedIndicesList);
 
         SpannableStringBuilder spannedContent = new SpannableStringBuilder(text);

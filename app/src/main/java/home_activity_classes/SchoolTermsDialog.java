@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.transition.Slide;
-import android.util.Log;
 import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -54,7 +53,6 @@ public class SchoolTermsDialog extends AppCompatDialog {
         assert mPrelim != null;
         mPrelim.setOnClickListener(view -> {
             final Intent intent = new Intent(context, ModulesListActivity.class);
-            Log.i("SUBJECTS FROM STORAGE", App.getSubjects().toString());
             List<Module> modules = App.getModulesFromSubject("Prelim", App.getSubjects().get(position));
             intent.putExtra("key", Objects.requireNonNull(App.getSubjects().get(position).get("key")).toString());
             intent.putExtra("term", "Prelim");

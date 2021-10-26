@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,14 +32,12 @@ import iccnote.Subject;
 import layouts.RoundedLayout;
 
 public class SubjectLstAdapter extends RecyclerView.Adapter<SubjectLstAdapter.ViewHolder> {
-    private static final String TAG = "SUBJECTLISTADAPTER";
     private final List<Subject> data;
     private final Context context;
 
     public SubjectLstAdapter(final Context cn, @NonNull final List<Subject> data) {
         context = cn;
         this.data = data;
-        Log.i(TAG, "SubjectLstAdapter: LIST: " + data.toString());
     }
 
     public OnItemClickListener mListener;

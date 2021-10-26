@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -54,14 +53,12 @@ public class Subject extends HashMap<String, Object> {
         // store the subject list to internal storage
         public void store(final List<Subject> subjects) {
             final String mJsonStrFromApp = new Gson().toJson(subjects);
-            Log.i("storing", subjects.size() + "-subjects");
             App.writeFile(mPath, mJsonStrFromApp, true); // always overwrite the file if it already exist
         }
         // get the subject list from the device internal storage
         public ArrayList<Subject> getSubjects() {
             final ArrayList<Subject> subject = new ArrayList<>();
             final String jsonStringFromInternal = App.readFile(mPath); // lets read the stored subject list file from device internal storage.
-            Log.i("json", jsonStringFromInternal);
 
             if (!jsonStringFromInternal.isEmpty()) {
                 ArrayList<HashMap<String, Object>> mSubjectsMap = new Gson().fromJson(jsonStringFromInternal, new TypeToken<ArrayList<HashMap<String, Object>>>() {}.getType());

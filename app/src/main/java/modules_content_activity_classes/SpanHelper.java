@@ -1,7 +1,5 @@
 package modules_content_activity_classes;
 
-import static android.content.ContentValues.TAG;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -13,7 +11,6 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
-import android.util.Log;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
@@ -267,10 +264,8 @@ public class SpanHelper {
                 final String spanned = spannedContent.toString();
                 final String newContent = App.cutString(contentView.getText().toString(), 0, spannedContent.length());
                 if (spanned.equals(newContent)) {
-                    Log.i(TAG, "setSpan: inside equals newContent");
                     spannedContent.append(App.cutString(contentView.getText().toString(), spannedContent.length(), contentView.length()));
                 } else {
-                    Log.i(TAG, "setSpan: inside not equal to newContent");
                     spannedContent.clear();
                     spannedContent.append(contentView.getText());
                     resetSpan(spannedContent, false);
@@ -278,7 +273,6 @@ public class SpanHelper {
             }
             // if spanned content is bigger than the new content text it means, the text was changed decremently in text size.
             if (spannedContent.length() > contentView.length()) {
-                Log.i(TAG, "setSpan: inside spanned content is bigger than the new content");
                 spannedContent.clear();
                 spannedContent.append(contentView.getText());
                 resetSpan(spannedContent, false);
@@ -293,7 +287,6 @@ public class SpanHelper {
                             continue;
 
                         if (selectedText.equals(Objects.requireNonNull(indexMap.get("text")).toString())) {
-                            Log.i(TAG, "setSpan: inside removing span");
                             if (Objects.requireNonNull(indexMap.get("type_span")).toString().equals(SPAN_TYPE)) {
                                 if (SPAN_TYPE.equals(FOREGROUND) || SPAN_TYPE.equals(BACKGROUND)) {
                                     final int color = new Gson().fromJson(Objects.requireNonNull(indexMap.get("color")).toString(), new TypeToken<Integer>() {}.getType());

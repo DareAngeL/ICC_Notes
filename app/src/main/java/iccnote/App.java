@@ -96,6 +96,13 @@ public class App {
         return metrics.widthPixels;
     }
 
+    public static int getScreenHeight(@NonNull AppCompatActivity activity) {
+        final DisplayMetrics metrics = new DisplayMetrics();
+        activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        return metrics.heightPixels;
+    }
+
     @NonNull
     public static Subject convertHashMapToSubject(@NonNull final HashMap<String, Object> map) {
         final Subject subject = new Subject();
@@ -251,7 +258,6 @@ public class App {
         // always checks if this list map is not null
         if (allModulesKeyMap != null)
             sortedModules.add(allModulesKeyMap);
-        Log.i("SORTED LIST", sortedModules.toString());
 
         return sortedModules;
     }
@@ -268,7 +274,6 @@ public class App {
     @NonNull
     public static List<Module> convertObjectToListModule(@Nullable final Object obj) {
         final String jsonObject = new Gson().toJson(obj);
-        Log.i("JSON OBJECT", jsonObject);
         LinkedTreeMap<String, Object> lnkTreeMap = new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType()) instanceof ArrayList ?
                 convertArrayToLnkedTree(new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType())) : new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType());
 
@@ -281,7 +286,6 @@ public class App {
             assert keys != null;
             modules.add(new Module(keys.get(i), lnkTreeMap.get(keys.get(i))));
         }
-        Log.i("LISTMAP", modules.toString());
         return modules;
     }
 
@@ -291,7 +295,6 @@ public class App {
         LinkedTreeMap<String, Object> lnkTreeMap = new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType()) instanceof ArrayList ?
                 convertArrayToLnkedTree(new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType())) : new Gson().fromJson(jsonObject, new TypeToken<Object>(){}.getType());
 
-        Log.i("ObjectToHashMap", lnkTreeMap.toString());
         final HashMap<String, Object> map = new HashMap<>();
         final List<String> keys = getKeys(lnkTreeMap);
         assert keys != null;

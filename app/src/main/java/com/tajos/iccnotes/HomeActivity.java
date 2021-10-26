@@ -7,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -239,9 +238,7 @@ public class HomeActivity extends AppCompatActivity {
         mDatabase.setOnDataListener((ArrayList<Subject> data) -> {
             // onDataReady...
             mSubjects = data;
-            Log.i("SUBJECTS", mSubjects.toString());
             _sortSubjects();
-            Log.i("SORTED SUBJECTS", mSubjects.toString());
             _setAdapter(); // sets the adapter of subjectLst
             _storeSubjectsToInternal(); // always store the subjects to internal storage
             loadingDlg.dismiss();
@@ -288,7 +285,6 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
                 _initDatabase();
-                Log.i("connection", "is connected");
                 _doneRefreshing();
             }
 
@@ -319,7 +315,6 @@ public class HomeActivity extends AppCompatActivity {
     */
     private void _initSavedData(@NonNull HashMap<String, Object> map, String key, boolean isForRemovingData) {
         HashMap<String, Object> savedDataPerSubject = App.convertObjectToHashMap(map.get(key));
-        Log.i("SAVEDPERSUBJECT", savedDataPerSubject.toString());
         final String childKey = Objects.requireNonNull(savedDataPerSubject.get(getString(R.string.CHILD))).toString();
         final String reference = Objects.requireNonNull(savedDataPerSubject.get(getString(R.string.PREF))).toString();
         final List<Module> dataForRemoval = App.convertObjectToListModule(savedDataPerSubject.get(getString(R.string.VALUE)));
@@ -343,7 +338,6 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         final String isThereRemainingModules = Objects.requireNonNull(savedDataPerSubject.get("remainingModule")).toString();
-        Log.i("MODULE SIZE", String.valueOf(dataForRemoval.size()));
         for (Module module : dataForRemoval) {
             final String moduleKey = App.getKey(module);
             final FirebaseDB updateDB = new FirebaseDB(reference, true, Objects.requireNonNull(module.get(moduleKey)).toString());
@@ -351,7 +345,6 @@ public class HomeActivity extends AppCompatActivity {
         }
         if (isThereRemainingModules.equals("false")) {
             final String newReference = reference.substring(0, reference.lastIndexOf("/"));
-            Log.i("REMAINING", newReference);
             final FirebaseDB updateDB = new FirebaseDB(newReference, false, null);
             final String term = reference.substring(reference.lastIndexOf("/")+1); // term(Prelim/Midterm/Finals) to be added again that was automatically deleted by the server bcuz of nullability.
             {
@@ -399,7 +392,6 @@ public class HomeActivity extends AppCompatActivity {
         firebaseImageStorage.setOnUploadingListener((List<Subject> updatedSubjects) -> {
             // on upload success
             mSubjects = updatedSubjects; // always update the content of @mSubjects.
-            Log.i("SUBJECT SIZE", String.valueOf(mSubjects.size()));
             _sortSubjects(); // sort the subjects after uploading successfully
             if (mSubjectLstRecycler.getAdapter() == null)
                 _setAdapter(); // then set the adapter of recyclerview thereafter.
