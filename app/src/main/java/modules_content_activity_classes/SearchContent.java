@@ -63,9 +63,13 @@ public class SearchContent extends HandlerThread {
                         final int lastIndex = startIndex + textToSearchLCase.length();
                         // put the indices of a searched text
                         final HashMap<String, Object> searchMap = new HashMap<>();
-                        final List<HashMap<String, Object>> spannedIndicesList = new Gson().fromJson(Objects.requireNonNull(content.get("indices")).toString(), new TypeToken<List<HashMap<String, Object>>>() {}.getType());
+                        List<HashMap<String, Object>> spannedIndicesList = new Gson().fromJson(Objects.requireNonNull(content.get("indices")).toString(), new TypeToken<List<HashMap<String, Object>>>() {}.getType());
                         searchMap.put(START_INDEX_KEY, startIndex);
                         searchMap.put(END_INDEX_KEY, lastIndex);
+
+                        if (spannedIndicesList == null) // checks if there's no spanned indices, if theres none then, create new object.
+                            spannedIndicesList = new ArrayList<>();
+
                         spannedIndicesList.add(searchMap);
                         // update the content
                         final String indicesJson = new Gson().toJson(spannedIndicesList);
