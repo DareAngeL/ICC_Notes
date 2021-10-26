@@ -37,7 +37,7 @@ public class SearchContent extends HandlerThread {
     }
 
     public SearchContent(final Context cn) {
-        super("SearchContent ", Process.THREAD_PRIORITY_DEFAULT);
+        super("SearchContent ", Process.THREAD_PRIORITY_DISPLAY);
         context = cn;
     }
 
