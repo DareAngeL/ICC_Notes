@@ -13,6 +13,22 @@ This is a simple notes application for [Imus Computer College](https://icconline
 - Able to search or find words and hides the other that didn't match the search value.
 - Notes can be access with or without internet connection
 - Able to style text
+
+## Made possible by:
+<a href="https://github.com/bumptech/glide">
+  <img src="https://github.com/bumptech/glide/blob/master/static/glide_logo.png" width="300" height="80">
+  </img>
+</a>
+<a href="https://firebase.google.com/">
+  <img src="https://user-images.githubusercontent.com/45682972/179688358-a3911665-118b-44da-8977-148ba2813d4d.png" width="200" height="100">
+  </img>
+</a>
+<a href="https://lottiefiles.com/">
+  <img src="https://user-images.githubusercontent.com/45682972/179689171-993eb1bb-18b0-472a-88ae-0a475c69ea67.png">
+  </img>
+</a>
+
 # Interface
 ### Some of the UI design
 ![icc-notes-gui](https://user-images.githubusercontent.com/45682972/179685124-10dff7ca-04b4-4aa3-8f6d-03f72396ee8b.jpg)
+![firebase]()
