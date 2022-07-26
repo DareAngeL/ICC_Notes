@@ -28,6 +28,6 @@ This is a simple notes application for [Imus Computer College](https://icconline
   </img>
 </a>
 
-# Interface
+# UI
 ### Some of the UI design
 ![icc-notes-gui](https://user-images.githubusercontent.com/45682972/179685124-10dff7ca-04b4-4aa3-8f6d-03f72396ee8b.jpg)
